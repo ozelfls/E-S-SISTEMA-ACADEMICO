@@ -1,7 +1,7 @@
 # GHFlusão - Sistema Acadêmico
 
 Este repositório contém o sistema acadêmico GHFlusão com backend em Spring Boot + Oracle e frontend em React + TypeScript.
-
+===============================
 ## 1) Como rodar o programa
 
 ### Pré-requisitos
