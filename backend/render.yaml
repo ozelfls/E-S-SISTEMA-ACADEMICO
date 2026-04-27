@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: ghflusao-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    buildCommand: cd backend && mvn clean package -DskipTests
+    envVars:
+      - key: ORACLE_JDBC_URL
+        sync: false
+      - key: ORACLE_USER
+        sync: false
+      - key: ORACLE_PASSWORD
+        sync: false
+      - key: ORACLE_SCHEMA
+        value: GHFLUSAO
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
+      - key: SWAGGER_ENABLED
+        value: "true"
