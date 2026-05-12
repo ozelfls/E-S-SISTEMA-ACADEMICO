@@ -1,0 +1,175 @@
+
+> ghflusao-frontend@1.0.0 dev
+> vite --host 0.0.0.0 --port 5173
+
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m528[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://10.1.19.10:[1m5173[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.224.1:[1m5173[22m/[39m
+[2m13:54:22[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/styles.css, /src/pages/AcessoNegado.tsx, /src/pages/admin/AdminDashboard.tsx, /src/pages/aluno/Historico.tsx, /src/pages/login/LoginPage.tsx, /src/components/layout/ProtectedRoute.tsx, /src/pages/aluno/AlunoDashboard.tsx, /src/pages/professor/ProfessorDashboard.tsx, /src/pages/aluno/Matriculas.tsx, /src/pages/professor/LancarNotas.tsx, /src/components/layout/Header.tsx, /src/components/layout/Sidebar.tsx, /src/pages/secretaria/SecretariaDashboard.tsx, /src/pages/admin/AdminDisciplinas.tsx, /src/pages/admin/AdminCursos.tsx, /src/pages/diretor/Cursos.tsx, /src/pages/admin/AdminAlunos.tsx, /src/pages/diretor/DiretorDashboard.tsx, /src/pages/secretaria/Alunos.tsx, /src/pages/admin/AdminExplorar.tsx, /src/components/admin/AlocarAlunoModal.tsx, /src/pages/coordenador/CoordenadorDashboard.tsx, /src/pages/coordenador/Disciplinas.tsx, /src/pages/coordenador/Turmas.tsx, /src/pages/admin/AdminTurmas.tsx, /src/components/admin/AlocarProfessorModal.tsx, /src/pages/admin/AdminProfessores.tsx, /src/pages/admin/AdminMasterDetails.tsx[22m
+[2m13:54:22[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/pages/secretaria/SecretariaDashboard.tsx, /src/pages/admin/AdminDashboard.tsx, /src/pages/admin/AdminDisciplinas.tsx, /src/pages/admin/AdminCursos.tsx, /src/pages/diretor/Cursos.tsx, /src/pages/admin/AdminAlunos.tsx, /src/pages/diretor/DiretorDashboard.tsx, /src/pages/secretaria/Alunos.tsx, /src/pages/professor/LancarNotas.tsx, /src/pages/aluno/Historico.tsx, /src/pages/aluno/AlunoDashboard.tsx, /src/pages/admin/AdminExplorar.tsx, /src/components/admin/AlocarAlunoModal.tsx, /src/pages/coordenador/CoordenadorDashboard.tsx, /src/pages/coordenador/Disciplinas.tsx, /src/pages/coordenador/Turmas.tsx, /src/pages/admin/AdminTurmas.tsx, /src/pages/professor/ProfessorDashboard.tsx, /src/pages/aluno/Matriculas.tsx, /src/components/admin/AlocarProfessorModal.tsx, /src/pages/admin/AdminProfessores.tsx, /src/pages/login/LoginPage.tsx, /src/pages/admin/AdminMasterDetails.tsx[22m
+[2m13:54:23[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/styles.css[22m
+[2m13:54:23[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/login/LoginPage.tsx, /src/styles.css[22m
+[2m13:54:23[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/ProtectedRoute.tsx, /src/styles.css[22m
+[2m13:54:34[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/ProtectedRoute.tsx, /src/styles.css[22m
+[2m12:07:25[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminAlunos.tsx, /src/styles.css[22m
+[2m12:07:25[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminAlunos.tsx, /src/styles.css[22m
+[2m12:08:02[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminProfessores.tsx, /src/styles.css[22m
+[2m12:08:55[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminCursos.tsx, /src/styles.css[22m
+[2m12:09:56[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminDisciplinas.tsx, /src/styles.css[22m
+[2m12:10:22[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminDisciplinas.tsx, /src/styles.css[22m
+[2m12:10:47[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminDisciplinas.tsx, /src/styles.css[22m
+[2m12:11:20[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminTurmas.tsx, /src/styles.css[22m
+[2m12:11:57[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/secretaria/Alunos.tsx, /src/styles.css[22m
+[2m12:12:55[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/coordenador/Turmas.tsx, /src/styles.css[22m
+[2m12:13:16[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/coordenador/Turmas.tsx, /src/styles.css[22m
+[2m12:14:17[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/coordenador/Disciplinas.tsx, /src/styles.css[22m
+[2m12:15:06[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/coordenador/Disciplinas.tsx, /src/styles.css[22m
+[2m12:15:21[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/coordenador/Disciplinas.tsx, /src/styles.css[22m
+[2m12:15:35[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/coordenador/Disciplinas.tsx, /src/styles.css[22m
+[2m12:16:53[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/diretor/Cursos.tsx, /src/styles.css[22m
+[2m12:18:01[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/diretor/Cursos.tsx, /src/styles.css[22m
+[2m12:18:14[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/diretor/Cursos.tsx, /src/styles.css[22m
+[2m12:18:29[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/diretor/Cursos.tsx, /src/styles.css[22m
+[2m12:47:31[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m12:49:40[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m12:49:54[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m12:50:14[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m12:50:27[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m12:51:11[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m12:51:24[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m12:51:42[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/styles.css[22m
+[2m12:51:52[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/login/LoginPage.tsx, /src/styles.css[22m
+[2m13:13:08[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:13:33[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:14:31[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:14:38[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:15:42[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:15:58[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:16:18[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:16:35[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:16:51[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:17:57[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:21:08[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:22:47[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:23:11[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:23:39[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:23:44[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:24:10[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:24:54[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:30:14[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:30:23[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:30:34[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:30:50[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:31:25[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:39:11[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:39:40[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:40:00[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:40:51[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m13:41:20[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m14:21:34[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminDashboard.tsx, /src/styles.css[22m
+[2m14:22:21[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminDashboard.tsx, /src/styles.css[22m
+[2m15:48:25[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminCursos.tsx, /src/styles.css[22m
+[2m15:48:34[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/styles.css[22m
+[2m15:48:52[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/Sidebar.tsx, /src/styles.css[22m
+[2m15:49:37[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/professor/LancarNotas.tsx, /src/styles.css[22m
+[2m15:49:46[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/professor/LancarNotas.tsx, /src/styles.css[22m
+[2m15:50:04[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/professor/LancarNotas.tsx, /src/styles.css[22m
+[2m15:50:21[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/professor/LancarNotas.tsx, /src/styles.css[22m
+[2m15:50:51[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/professor/LancarNotas.tsx, /src/styles.css[22m
+[2m15:50:59[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/professor/LancarNotas.tsx, /src/styles.css[22m
+[2m15:53:44[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminCursos.tsx, /src/styles.css[22m
+[2m16:13:04[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/Header.tsx, /src/styles.css[22m
+[2m16:14:22[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m16:15:08[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m16:15:20[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m16:15:48[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m16:16:30[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/aluno/Matriculas.tsx, /src/styles.css[22m
+[2m16:16:52[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m16:17:30[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m16:17:38[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m16:17:53[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/aluno/Historico.tsx, /src/styles.css[22m
+[2m16:18:14[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminTurmas.tsx, /src/styles.css[22m
+[2m16:18:25[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminTurmas.tsx, /src/styles.css[22m
+[2m16:18:53[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/professor/LancarNotas.tsx, /src/styles.css[22m
+[2m16:19:04[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/professor/LancarNotas.tsx, /src/styles.css[22m
+[2m16:19:18[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/professor/LancarNotas.tsx, /src/styles.css[22m
+[2m16:20:02[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m16:20:24[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/professor/LancarNotas.tsx, /src/styles.css[22m
+[2m16:20:36[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminExplorar.tsx, /src/styles.css[22m
+[2m16:25:23[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminDashboard.tsx, /src/styles.css[22m
+[2m16:27:02[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminDashboard.tsx, /src/styles.css[22m
+[2m16:27:12[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminDashboard.tsx, /src/styles.css[22m
+[2m17:01:08[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/Header.tsx, /src/styles.css[22m
+[2m17:01:53[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/aluno/Matriculas.tsx, /src/styles.css[22m
+[2m17:02:00[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/aluno/Matriculas.tsx, /src/styles.css[22m
+[2m17:02:06[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/aluno/Matriculas.tsx, /src/styles.css[22m
+[2m17:02:13[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/aluno/Matriculas.tsx, /src/styles.css[22m
+[2m17:02:18[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/aluno/Matriculas.tsx, /src/styles.css[22m
+[2m17:02:39[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/aluno/Matriculas.tsx, /src/styles.css[22m
+[2m17:03:03[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/aluno/Historico.tsx, /src/styles.css[22m
+[2m17:03:16[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/aluno/Historico.tsx, /src/styles.css[22m
+[2m17:03:39[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminTurmas.tsx, /src/styles.css[22m
+[2m17:04:02[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminTurmas.tsx, /src/styles.css[22m
+[2m17:05:11[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/aluno/Matriculas.tsx, /src/styles.css[22m
+[2m17:05:21[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/aluno/Matriculas.tsx, /src/styles.css[22m
+[2m17:39:41[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminDashboard.tsx, /src/styles.css[22m
+[2m17:39:42[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/pages/professor/LancarNotas.tsx[22m
+[2m17:39:42[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/admin/AlocarAlunoModal.tsx, /src/styles.css[22m
+[2m17:39:42[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ui/PaginationControls.tsx, /src/styles.css[22m
+[2m17:39:42[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/coordenador/Disciplinas.tsx, /src/styles.css, /src/pages/coordenador/Turmas.tsx, /src/pages/secretaria/Alunos.tsx, /src/pages/admin/AdminAlunos.tsx, /src/pages/admin/AdminDisciplinas.tsx, /src/pages/admin/AdminTurmas.tsx, /src/pages/diretor/Cursos.tsx, /src/pages/admin/AdminCursos.tsx, /src/pages/admin/AdminProfessores.tsx, /src/pages/admin/AdminCursoDisciplinasModal.tsx, /src/pages/aluno/Matriculas.tsx[22m
+[2m17:39:42[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/AcessoNegado.tsx, /src/styles.css[22m
+[2m17:39:42[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminCursoDisciplinasModal.tsx, /src/styles.css[22m
+[2m17:39:42[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminMasterDetails.tsx, /src/styles.css[22m
+[2m17:39:47[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/styles.css[22m
+[2m17:39:47[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/pages/secretaria/SecretariaDashboard.tsx, /src/pages/admin/AdminDisciplinas.tsx, /src/pages/admin/AdminCursos.tsx, /src/pages/diretor/Cursos.tsx, /src/pages/admin/AdminAlunos.tsx, /src/pages/diretor/DiretorDashboard.tsx, /src/pages/secretaria/Alunos.tsx, /src/pages/professor/LancarNotas.tsx, /src/pages/aluno/Historico.tsx, /src/pages/aluno/AlunoDashboard.tsx, /src/pages/admin/AdminExplorar.tsx, /src/pages/aluno/Matriculas.tsx, /src/pages/coordenador/CoordenadorDashboard.tsx, /src/pages/coordenador/Disciplinas.tsx, /src/pages/coordenador/Turmas.tsx, /src/pages/admin/AdminTurmas.tsx, /src/pages/professor/ProfessorDashboard.tsx, /src/components/admin/AlocarProfessorModal.tsx, /src/pages/admin/AdminProfessores.tsx, /src/pages/login/LoginPage.tsx, /src/components/layout/Header.tsx[22m
+[2m17:39:47[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/styles.css[22m
+[2m17:39:47[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/admin/AlocarProfessorModal.tsx, /src/styles.css[22m
+[2m17:39:47[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/Header.tsx, /src/styles.css[22m
+[2m17:39:48[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/pages/secretaria/SecretariaDashboard.tsx, /src/pages/admin/AdminDisciplinas.tsx, /src/pages/admin/AdminCursos.tsx, /src/pages/diretor/Cursos.tsx, /src/pages/admin/AdminAlunos.tsx, /src/pages/diretor/DiretorDashboard.tsx, /src/pages/secretaria/Alunos.tsx, /src/pages/professor/LancarNotas.tsx, /src/pages/aluno/Historico.tsx, /src/pages/aluno/AlunoDashboard.tsx, /src/pages/admin/AdminExplorar.tsx, /src/pages/aluno/Matriculas.tsx, /src/pages/coordenador/CoordenadorDashboard.tsx, /src/pages/coordenador/Disciplinas.tsx, /src/pages/coordenador/Turmas.tsx, /src/pages/admin/AdminTurmas.tsx, /src/pages/professor/ProfessorDashboard.tsx, /src/components/admin/AlocarProfessorModal.tsx, /src/pages/admin/AdminProfessores.tsx, /src/pages/login/LoginPage.tsx, /src/components/layout/Header.tsx[22m
+[2m17:39:48[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/pages/admin/AdminExplorar.tsx, /src/components/layout/Header.tsx[22m
+[2m17:39:48[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/pages/professor/LancarNotas.tsx[22m
+[2m17:39:48[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/pages/coordenador/CoordenadorDashboard.tsx, /src/pages/coordenador/Turmas.tsx, /src/pages/professor/ProfessorDashboard.tsx, /src/pages/aluno/Matriculas.tsx, /src/pages/admin/AdminTurmas.tsx, /src/pages/professor/LancarNotas.tsx, /src/pages/admin/AdminExplorar.tsx, /src/components/admin/AlocarProfessorModal.tsx[22m
+[2m17:39:48[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ui/Combobox.tsx, /src/styles.css[22m
+[2m17:39:48[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/admin/AlocarProfessorModal.tsx, /src/styles.css[22m
+[2m17:39:48[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/pages/coordenador/Turmas.tsx, /src/pages/diretor/Cursos.tsx, /src/pages/aluno/Matriculas.tsx, /src/pages/secretaria/Alunos.tsx, /src/pages/professor/LancarNotas.tsx[22m
+[2m17:39:48[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminAlunos.tsx, /src/styles.css[22m
+[2m17:39:48[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/Header.tsx, /src/styles.css[22m
+[2m17:39:48[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/ProtectedRoute.tsx, /src/styles.css[22m
+[2m17:39:48[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/Sidebar.tsx, /src/styles.css[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/aluno/Historico.tsx, /src/styles.css[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/coordenador/Disciplinas.tsx, /src/styles.css[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/diretor/Cursos.tsx, /src/styles.css[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/professor/LancarNotas.tsx, /src/styles.css[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/secretaria/Alunos.tsx, /src/styles.css[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/pages/aluno/Historico.tsx, /src/pages/login/LoginPage.tsx, /src/components/layout/ProtectedRoute.tsx, /src/pages/aluno/AlunoDashboard.tsx, /src/pages/professor/ProfessorDashboard.tsx, /src/pages/aluno/Matriculas.tsx, /src/pages/professor/LancarNotas.tsx, /src/components/layout/Header.tsx, /src/components/layout/Sidebar.tsx, /src/pages/secretaria/SecretariaDashboard.tsx, /src/pages/admin/AdminDisciplinas.tsx, /src/pages/admin/AdminCursos.tsx, /src/pages/diretor/Cursos.tsx, /src/pages/admin/AdminAlunos.tsx, /src/pages/diretor/DiretorDashboard.tsx, /src/pages/secretaria/Alunos.tsx, /src/pages/admin/AdminExplorar.tsx, /src/pages/coordenador/CoordenadorDashboard.tsx, /src/pages/coordenador/Disciplinas.tsx, /src/pages/coordenador/Turmas.tsx, /src/pages/admin/AdminTurmas.tsx, /src/components/admin/AlocarProfessorModal.tsx, /src/pages/admin/AdminProfessores.tsx, /src/pages/admin/AdminDashboard.tsx[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/types/index.ts[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ui/Combobox.tsx, /src/styles.css[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ui/Input.tsx, /src/styles.css[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ui/Modal.tsx, /src/styles.css[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ui/Table.tsx, /src/styles.css[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/pages/coordenador/Turmas.tsx, /src/pages/diretor/Cursos.tsx, /src/pages/aluno/Matriculas.tsx, /src/pages/secretaria/Alunos.tsx, /src/pages/professor/LancarNotas.tsx[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminAlunos.tsx, /src/styles.css[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminCursos.tsx, /src/styles.css[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminDashboard.tsx, /src/styles.css[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminDisciplinas.tsx, /src/styles.css[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminExplorar.tsx, /src/styles.css[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminProfessores.tsx, /src/styles.css[22m
+[2m17:39:49[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminTurmas.tsx, /src/styles.css[22m
+[2m17:39:50[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminCursos.tsx, /src/styles.css[22m
+[2m17:39:50[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminDisciplinas.tsx, /src/styles.css[22m
+[2m17:39:51[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminExplorar.tsx, /src/styles.css[22m
+[2m17:39:52[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminProfessores.tsx, /src/styles.css[22m
+[2m17:39:52[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminTurmas.tsx, /src/styles.css[22m
+[2m17:39:52[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/admin/AdminDashboard.tsx, /src/styles.css[22m
+[2m17:39:52[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/aluno/Historico.tsx, /src/styles.css[22m
+[2m17:39:52[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/aluno/Matriculas.tsx, /src/styles.css[22m
+[2m17:39:52[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/coordenador/Disciplinas.tsx, /src/styles.css[22m
+[2m17:39:52[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/coordenador/Turmas.tsx, /src/styles.css[22m
+[2m17:39:52[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/diretor/Cursos.tsx, /src/styles.css[22m
+[2m17:39:52[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/professor/LancarNotas.tsx, /src/styles.css[22m
+[2m17:39:52[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/secretaria/Alunos.tsx, /src/styles.css[22m
+[2m17:39:52[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles.css, /src/pages/aluno/Historico.tsx, /src/pages/login/LoginPage.tsx, /src/components/layout/ProtectedRoute.tsx, /src/pages/aluno/AlunoDashboard.tsx, /src/pages/professor/ProfessorDashboard.tsx, /src/pages/aluno/Matriculas.tsx, /src/pages/professor/LancarNotas.tsx, /src/components/layout/Header.tsx, /src/components/layout/Sidebar.tsx, /src/pages/secretaria/SecretariaDashboard.tsx, /src/pages/admin/AdminDisciplinas.tsx, /src/pages/admin/AdminCursos.tsx, /src/pages/diretor/Cursos.tsx, /src/pages/admin/AdminAlunos.tsx, /src/pages/diretor/DiretorDashboard.tsx, /src/pages/secretaria/Alunos.tsx, /src/pages/admin/AdminExplorar.tsx, /src/pages/coordenador/CoordenadorDashboard.tsx, /src/pages/coordenador/Disciplinas.tsx, /src/pages/coordenador/Turmas.tsx, /src/pages/admin/AdminTurmas.tsx, /src/components/admin/AlocarProfessorModal.tsx, /src/pages/admin/AdminProfessores.tsx, /src/pages/admin/AdminDashboard.tsx[22m
+[2m17:39:52[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/types/index.ts[22m
