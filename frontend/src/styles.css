@@ -25,6 +25,56 @@
       radial-gradient(circle at 92% 88%, rgba(22, 163, 74, 0.05), transparent 45%);
   }
 
+  body.theme-dark {
+    background-color: #101418;
+    color: #E5E7EB;
+  }
+
+  body.theme-dark::before {
+    background:
+      radial-gradient(circle at 8% 12%, rgba(220, 20, 60, 0.14), transparent 42%),
+      radial-gradient(circle at 92% 88%, rgba(22, 163, 74, 0.11), transparent 42%),
+      linear-gradient(180deg, #101418 0%, #151B21 100%);
+  }
+
+  body.theme-dark .bg-surface {
+    background-color: #151B21;
+  }
+
+  body.theme-dark .bg-surface-card,
+  body.theme-dark .bg-white {
+    background-color: #1F2933;
+  }
+
+  body.theme-dark .border-surface-border {
+    border-color: #34404C;
+  }
+
+  body.theme-dark .text-text,
+  body.theme-dark h1,
+  body.theme-dark h2,
+  body.theme-dark h3 {
+    color: #F3F4F6;
+  }
+
+  body.theme-dark .text-text-muted,
+  body.theme-dark .placeholder\:text-text-muted::placeholder {
+    color: #A6B0BC;
+  }
+
+  body.theme-dark input,
+  body.theme-dark select,
+  body.theme-dark textarea {
+    background-color: #111827;
+    color: #F3F4F6;
+    border-color: #34404C;
+  }
+
+  body.theme-dark .shadow-card,
+  body.theme-dark .shadow-cardHover {
+    box-shadow: 0 10px 30px -10px rgb(0 0 0 / 0.55);
+  }
+
   h1,
   h2,
   h3 {
