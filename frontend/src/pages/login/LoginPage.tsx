@@ -26,6 +26,14 @@ const routeByPerfil: Record<Perfil, string> = {
   ADMIN: '/admin/dashboard'
 }
 
+const integrantes = [
+  'Daniel de Oliveira',
+  'Pedro Artur',
+  'Hiago Arruda',
+  'Dagner Leal',
+  'Kaleo Lemos'
+]
+
 export function LoginPage() {
   const navigate = useNavigate()
   const { setAuth } = useAuthStore()
@@ -137,10 +145,21 @@ export function LoginPage() {
               </Button>
             </form>
           </Card>
-          <p className="text-center text-xs text-text-muted mt-4">
-            ADMIN demo: <span className="font-mono">blankspace</span> /{' '}
-            <span className="font-mono">1234</span>
-          </p>
+          <div className="mt-5 rounded-card border border-surface-border bg-surface px-4 py-3">
+            <p className="text-center text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+              Integrantes
+            </p>
+            <div className="mt-2 flex flex-wrap justify-center gap-2">
+              {integrantes.map(integrante => (
+                <span
+                  key={integrante}
+                  className="rounded-full border border-surface-border bg-white px-3 py-1 text-xs font-semibold text-text"
+                >
+                  {integrante}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
     </div>
