@@ -63,7 +63,7 @@ public class ProfessorService {
 
     private void aplicar(Professor professor, ProfessorRequestDTO dto) {
         professor.setNome(dto.nome());
-        professor.setCpf(dto.cpf());
+        professor.setCpf(CpfFormatter.format(dto.cpf()));
         professor.setEmail(dto.email());
         professor.setTelefone(dto.telefone());
         professor.setEndereco(dto.endereco());

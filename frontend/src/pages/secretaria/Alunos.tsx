@@ -27,6 +27,8 @@ const initialForm: AlunoPayload = {
   email: ''
 }
 
+const onlyDigits = (value: string) => value.replace(/\D/g, '').slice(0, 11)
+
 export function Alunos() {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState<AlunoPayload>(initialForm)
@@ -97,8 +99,10 @@ export function Alunos() {
               <label className="block text-sm font-medium mb-1">CPF</label>
               <Input
                 value={form.cpf}
-                onChange={e => setForm({ ...form, cpf: e.target.value })}
-                placeholder="000.000.000-00"
+                onChange={e => setForm({ ...form, cpf: onlyDigits(e.target.value) })}
+                inputMode="numeric"
+                maxLength={11}
+                placeholder="Somente numeros"
               />
             </div>
             <div>
@@ -106,11 +110,8 @@ export function Alunos() {
                 Nº Matrícula
               </label>
               <Input
-                type="number"
-                value={form.matriculaId || ''}
-                onChange={e =>
-                  setForm({ ...form, matriculaId: Number(e.target.value) })
-                }
+                value="Gerada automaticamente"
+                disabled
               />
             </div>
           </div>
@@ -164,7 +165,6 @@ export function Alunos() {
               disabled={
                 !form.nome ||
                 !form.cpf ||
-                !form.matriculaId ||
                 !form.cursoId ||
                 mutation.isPending
               }

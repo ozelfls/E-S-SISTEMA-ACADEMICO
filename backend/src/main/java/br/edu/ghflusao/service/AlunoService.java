@@ -34,7 +34,7 @@ public class AlunoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Curso não encontrado: " + dto.cursoId()));
         Aluno aluno = new Aluno();
         aluno.setNome(dto.nome());
-        aluno.setCpf(dto.cpf());
+        aluno.setCpf(CpfFormatter.format(dto.cpf()));
         aluno.setMatriculaId(proximaMatricula());
         aluno.setTurno(dto.turno());
         aluno.setCurso(curso);
@@ -62,7 +62,7 @@ public class AlunoService {
         Curso curso = cursoRepository.findById(dto.cursoId())
                 .orElseThrow(() -> new BusinessException("Entidade não encontrada."));
         aluno.setNome(dto.nome());
-        aluno.setCpf(dto.cpf());
+        aluno.setCpf(CpfFormatter.format(dto.cpf()));
         if (dto.matriculaId() != null && !dto.matriculaId().equals(aluno.getMatriculaId())) {
             throw new BusinessException("Matrícula é imutável e não pode ser alterada.");
         }
@@ -96,6 +96,7 @@ public class AlunoService {
         return new AlunoResponseDTO(
                 aluno.getId(),
                 aluno.getNome(),
+                aluno.getCpf(),
                 aluno.getMatriculaId(),
                 aluno.getTurno(),
                 aluno.getCurso() != null ? aluno.getCurso().getId() : null,

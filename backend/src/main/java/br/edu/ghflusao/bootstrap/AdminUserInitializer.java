@@ -14,23 +14,25 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class AdminUserInitializer implements CommandLineRunner {
 
-    private static final String ADMIN_LOGIN = "blankspace";
     private static final String ADMIN_SENHA = "1234";
+    private static final String[] ADMIN_LOGINS = {"blankspace", "funnyValentine"};
 
     private final UsuarioSistemaRepository repository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
-        if (repository.findByLogin(ADMIN_LOGIN).isPresent()) {
-            return;
+        for (String login : ADMIN_LOGINS) {
+            if (repository.findByLogin(login).isPresent()) {
+                continue;
+            }
+            UsuarioSistema admin = new UsuarioSistema();
+            admin.setLogin(login);
+            admin.setSenhaHash(passwordEncoder.encode(ADMIN_SENHA));
+            admin.setPerfil(Perfil.ADMIN);
+            admin.setAtivo(true);
+            repository.save(admin);
+            log.info("Usuario ADM '{}' criado com perfil ADMIN.", login);
         }
-        UsuarioSistema admin = new UsuarioSistema();
-        admin.setLogin(ADMIN_LOGIN);
-        admin.setSenhaHash(passwordEncoder.encode(ADMIN_SENHA));
-        admin.setPerfil(Perfil.ADMIN);
-        admin.setAtivo(true);
-        repository.save(admin);
-        log.info("Usuário ADM '{}' criado com perfil ADMIN.", ADMIN_LOGIN);
     }
 }

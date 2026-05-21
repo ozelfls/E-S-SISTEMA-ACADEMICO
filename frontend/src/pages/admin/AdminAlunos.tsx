@@ -30,11 +30,12 @@ import { Pagination } from '../../components/ui/Pagination'
 import { Spinner } from '../../components/ui/Spinner'
 import type { Aluno, Turno } from '../../types'
 
-const cpfRegex = /^(\d{11}|\d{3}\.\d{3}\.\d{3}-\d{2})$/
+const cpfRegex = /^\d{11}$/
+const onlyDigits = (value: string) => value.replace(/\D/g, '').slice(0, 11)
 
 const schema = z.object({
   nome: z.string().min(3, 'Mínimo 3 caracteres'),
-  cpf: z.string().regex(cpfRegex, 'CPF inválido'),
+  cpf: z.string().regex(cpfRegex, 'Informe os 11 numeros do CPF'),
   turno: z.enum(['MANHA', 'TARDE', 'NOITE', 'INTEGRAL']),
   cursoId: z.coerce.number().int().min(1, 'Selecione o curso'),
   email: z
@@ -115,7 +116,7 @@ export function AdminAlunos() {
     setEditing(a)
     form.reset({
       nome: a.nome,
-      cpf: '',
+      cpf: onlyDigits(a.cpf ?? ''),
       turno: a.turno,
       cursoId: a.curso?.id ?? cursos.data?.[0]?.id,
       email: a.email ?? ''
@@ -172,7 +173,7 @@ export function AdminAlunos() {
   const onSubmit = form.handleSubmit(values => {
     const payload: AlunoPayload = {
       nome: values.nome,
-      cpf: values.cpf,
+      cpf: onlyDigits(values.cpf),
       turno: values.turno as Turno,
       cursoId: Number(values.cursoId),
       email: values.email || undefined
@@ -327,9 +328,15 @@ export function AdminAlunos() {
                 CPF
               </label>
               <Input
-                {...form.register('cpf')}
+                {...form.register('cpf', {
+                  onChange: e => {
+                    e.target.value = onlyDigits(e.target.value)
+                  }
+                })}
                 error={form.formState.errors.cpf?.message}
-                placeholder="000.000.000-00"
+                inputMode="numeric"
+                maxLength={11}
+                placeholder="Somente numeros"
               />
             </div>
             <div>

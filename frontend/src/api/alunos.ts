@@ -4,6 +4,7 @@ import type { Aluno, ApiResponse, MatriculaEmTurma, Turno } from '../types'
 interface AlunoResponse {
   id: number
   nome: string
+  cpf: string | null
   matriculaId: number
   turno: Turno
   cursoId: number | null
@@ -24,6 +25,7 @@ function normalizeAluno(aluno: AlunoResponse): Aluno {
   return {
     id: aluno.id,
     nome: aluno.nome,
+    cpf: aluno.cpf ?? undefined,
     matriculaId: aluno.matriculaId,
     turno: aluno.turno,
     curso:

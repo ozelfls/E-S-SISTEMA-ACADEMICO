@@ -64,6 +64,7 @@ export interface Turma {
 export interface Aluno {
   id: number
   nome: string
+  cpf?: string
   matriculaId: number
   turno: Turno
   curso: Curso | null

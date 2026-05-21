@@ -5,6 +5,7 @@ import br.edu.ghflusao.enums.Turno;
 public record AlunoResponseDTO(
         Long id,
         String nome,
+        String cpf,
         Integer matriculaId,
         Turno turno,
         Long cursoId,
