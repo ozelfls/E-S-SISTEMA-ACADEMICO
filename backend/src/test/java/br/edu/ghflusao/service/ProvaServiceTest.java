@@ -48,7 +48,7 @@ class ProvaServiceTest {
         ResultadoProva r = new ResultadoProva();
         r.setId(1L);
         r.setProva(prova);
-        when(resultadoRepository.findById(1L)).thenReturn(Optional.of(r));
+        when(resultadoRepository.findByIdForLancamento(1L)).thenReturn(Optional.of(r));
 
         ResultadoRequestDTO dto = new ResultadoRequestDTO(11.0, true, LocalDate.now(), 120);
         assertThrows(BusinessException.class, () -> provaService.lancarResultado(1L, dto));
@@ -64,7 +64,7 @@ class ProvaServiceTest {
         resultado.setId(2L);
         resultado.setProva(prova);
 
-        when(resultadoRepository.findById(2L)).thenReturn(Optional.of(resultado));
+        when(resultadoRepository.findByIdForLancamento(2L)).thenReturn(Optional.of(resultado));
 
         ResultadoRequestDTO dto = new ResultadoRequestDTO(8.0, true, LocalDate.now(), 120);
         assertThrows(BusinessException.class, () -> provaService.lancarResultado(2L, dto));

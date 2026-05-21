@@ -233,4 +233,47 @@ public class ConsultaDTOs {
             int totalHits
     ) {
     }
+
+    public record RelatorioAcademicoRow(
+            Long alunoId,
+            String alunoNome,
+            Integer alunoMatricula,
+            String alunoEmail,
+            Turno alunoTurno,
+            Long cursoId,
+            String cursoNome,
+            Integer cursoChTotal,
+            Long disciplinaId,
+            String disciplinaCodigo,
+            String disciplinaNome,
+            Integer disciplinaCh,
+            Modalidade disciplinaModalidade,
+            Long turmaId,
+            String turmaCodigo,
+            Turno turmaTurno,
+            String turmaSemestre,
+            Integer turmaAno,
+            String turmaSala,
+            String turmaHorario,
+            Integer turmaVagas,
+            Long professorId,
+            String professorNome,
+            String professorEmail,
+            String professorTitulacao,
+            Long matriculaId,
+            LocalDate matriculaData,
+            Situacao matriculaSituacao,
+            Double matriculaFrequencia,
+            Double matriculaMediaFinal,
+            Long provaId,
+            String provaCodigo,
+            Double provaPeso,
+            String provaConteudo,
+            Long resultadoId,
+            Double resultadoNota,
+            Boolean resultadoPresente,
+            LocalDate resultadoDataRealizacao,
+            Integer resultadoDuracaoMin
+    ) {
+    }
 }

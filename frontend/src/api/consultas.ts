@@ -200,6 +200,48 @@ export interface BuscaGlobalView {
   cursos: Array<{ id: number; nome: string }>
 }
 
+export interface RelatorioAcademicoRow {
+  alunoId: number | null
+  alunoNome: string | null
+  alunoMatricula: number | null
+  alunoEmail: string | null
+  alunoTurno: string | null
+  cursoId: number | null
+  cursoNome: string | null
+  cursoChTotal: number | null
+  disciplinaId: number | null
+  disciplinaCodigo: string | null
+  disciplinaNome: string | null
+  disciplinaCh: number | null
+  disciplinaModalidade: string | null
+  turmaId: number | null
+  turmaCodigo: string | null
+  turmaTurno: string | null
+  turmaSemestre: string | null
+  turmaAno: number | null
+  turmaSala: string | null
+  turmaHorario: string | null
+  turmaVagas: number | null
+  professorId: number | null
+  professorNome: string | null
+  professorEmail: string | null
+  professorTitulacao: string | null
+  matriculaId: number | null
+  matriculaData: string | null
+  matriculaSituacao: string | null
+  matriculaFrequencia: number | null
+  matriculaMediaFinal: number | null
+  provaId: number | null
+  provaCodigo: string | null
+  provaPeso: number | null
+  provaConteudo: string | null
+  resultadoId: number | null
+  resultadoNota: number | null
+  resultadoPresente: boolean | null
+  resultadoDataRealizacao: string | null
+  resultadoDuracaoMin: number | null
+}
+
 export async function turmasDoProfessor(
   professorId: number
 ): Promise<ProfessorTurmasView> {
@@ -254,6 +296,13 @@ export async function buscarGlobal(q: string): Promise<BuscaGlobalView> {
   params.set('q', q)
   const { data } = await api.get<ApiResponse<BuscaGlobalView>>(
     `/consultas/buscar?${params.toString()}`
+  )
+  return data.data
+}
+
+export async function relatorioAcademico(): Promise<RelatorioAcademicoRow[]> {
+  const { data } = await api.get<ApiResponse<RelatorioAcademicoRow[]>>(
+    '/consultas/relatorio-academico'
   )
   return data.data
 }

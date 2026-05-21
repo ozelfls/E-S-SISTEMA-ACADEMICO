@@ -9,6 +9,8 @@ import { StatCard } from '../../components/ui/StatCard'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { AlocarProfessorModal } from '../../components/admin/AlocarProfessorModal'
+import { AdvancedReportBuilder } from './AdvancedReportBuilder'
+import { MasterDetailsExplorer } from './MasterDetailsExplorer'
 import {
   EmptyRow,
   TBody,
@@ -32,6 +34,8 @@ import {
 } from '../../api/consultas'
 
 type TabKey =
+  | 'masterdetails'
+  | 'relatorio'
   | 'professor'
   | 'aluno'
   | 'turma'
@@ -54,6 +58,16 @@ const TABS: Array<{
   label: string
   hint: string
 }> = [
+  {
+    key: 'masterdetails',
+    label: 'Master details',
+    hint: 'Treeview hierarquico de curso, disciplina e turma com detalhes vinculados.'
+  },
+  {
+    key: 'relatorio',
+    label: 'Construtor',
+    hint: 'Relatorios customizados com tabelas relacionadas, graficos e CSV.'
+  },
   {
     key: 'professor',
     label: 'Professor',
@@ -121,7 +135,7 @@ const errorMessage = (err: unknown): string => {
 const CURRENT_YEAR = new Date().getFullYear()
 
 export function AdminExplorar() {
-  const [tab, setTab] = useState<TabKey>('professor')
+  const [tab, setTab] = useState<TabKey>('masterdetails')
   const [state, setState] = useState<ExplorerState>({
     professorId: null,
     alunoId: null,
@@ -141,8 +155,8 @@ export function AdminExplorar() {
   return (
     <>
       <PageHeader
-        title="Explorar"
-        subtitle="Central de consulta: escolha o modo de análise e encontre dados acadêmicos em segundos."
+        title="Consulta Avancada"
+        subtitle="Central de consulta: escolha o modo de analise e encontre dados academicos em segundos."
       />
 
       <Card
@@ -192,6 +206,11 @@ export function AdminExplorar() {
         {currentTab.hint}
       </p>
 
+      {tab === 'masterdetails' ? (
+        <MasterDetailsExplorer />
+      ) : tab === 'relatorio' ? (
+        <AdvancedReportBuilder />
+      ) : (
       <Card>
         {tab === 'professor' && (
           <ProfessorLens
@@ -250,6 +269,7 @@ export function AdminExplorar() {
           />
         )}
       </Card>
+      )}
     </>
   )
 }

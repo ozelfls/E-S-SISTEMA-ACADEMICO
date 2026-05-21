@@ -3,6 +3,7 @@ package br.edu.ghflusao.controller;
 import br.edu.ghflusao.dto.request.AlunoCreateDTO;
 import br.edu.ghflusao.dto.request.MatriculaRequestDTO;
 import br.edu.ghflusao.dto.response.ApiResponse;
+import br.edu.ghflusao.dto.response.MatriculaEmTurmaResponseDTO;
 import br.edu.ghflusao.service.AlunoService;
 import br.edu.ghflusao.service.MatriculaService;
 import jakarta.validation.Valid;
@@ -28,14 +29,14 @@ public class AlunoController {
     private final MatriculaService matriculaService;
 
     @PostMapping
-    @PreAuthorize("hasRole('SECRETARIA')")
+    @PreAuthorize("hasAnyRole('SECRETARIA','ADMIN')")
     public ResponseEntity<ApiResponse<?>> criar(@Valid @RequestBody AlunoCreateDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(alunoService.criar(dto), "Aluno cadastrado com sucesso."));
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('SECRETARIA')")
+    @PreAuthorize("hasAnyRole('SECRETARIA','ADMIN')")
     public ResponseEntity<ApiResponse<?>> listar() {
         return ResponseEntity.ok(ApiResponse.ok(alunoService.listar()));
     }
@@ -60,20 +61,45 @@ public class AlunoController {
     }
 
     @GetMapping("/{id}/historico")
-    @PreAuthorize("hasAnyRole('ALUNO','SECRETARIA')")
+    @PreAuthorize("hasAnyRole('ALUNO','SECRETARIA','ADMIN')")
     public ResponseEntity<ApiResponse<?>> historico(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(matriculaService.getHistorico(id)));
+        return ResponseEntity.ok(ApiResponse.ok(matriculaService.getHistorico(id).stream()
+                .map(MatriculaEmTurmaResponseDTO::from)
+                .toList()));
     }
 
     @PostMapping("/{id}/matriculas")
-    @PreAuthorize("hasRole('ALUNO')")
+    @PreAuthorize("hasAnyRole('ALUNO','SECRETARIA','ADMIN')")
     public ResponseEntity<ApiResponse<?>> matricular(@PathVariable Long id, @Valid @RequestBody MatriculaRequestDTO dto) {
-        return ResponseEntity.ok(ApiResponse.ok(matriculaService.matricularAluno(id, dto.turmaId()), "Matrícula realizada."));
+        return ResponseEntity.ok(ApiResponse.ok(
+                MatriculaEmTurmaResponseDTO.from(matriculaService.matricularAluno(id, dto.turmaId())),
+                "Matricula realizada."
+        ));
+    }
+
+    @PostMapping("/{id}/matriculas/alocacao-automatica")
+    @PreAuthorize("hasAnyRole('SECRETARIA','ADMIN')")
+    public ResponseEntity<ApiResponse<?>> alocacaoAutomatica(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(matriculaService.alocarAutomaticamente(id), "Alocacao automatica concluida."));
+    }
+
+    @GetMapping("/{id}/matriculas/opcoes")
+    @PreAuthorize("hasAnyRole('ALUNO','SECRETARIA','ADMIN')")
+    public ResponseEntity<ApiResponse<?>> opcoesMatricula(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(matriculaService.listarOpcoesMatricula(id)));
+    }
+
+    @GetMapping("/{id}/matriculas/{turmaId}/analise")
+    @PreAuthorize("hasAnyRole('ALUNO','SECRETARIA','ADMIN')")
+    public ResponseEntity<ApiResponse<?>> analisarMatricula(@PathVariable Long id, @PathVariable Long turmaId) {
+        return ResponseEntity.ok(ApiResponse.ok(matriculaService.analisarMatricula(id, turmaId)));
     }
 
     @GetMapping("/{id}/turmas-ativas")
-    @PreAuthorize("hasRole('ALUNO')")
+    @PreAuthorize("hasAnyRole('ALUNO','SECRETARIA','ADMIN')")
     public ResponseEntity<ApiResponse<?>> turmasAtivas(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(matriculaService.getTurmasAtivas(id)));
+        return ResponseEntity.ok(ApiResponse.ok(matriculaService.getTurmasAtivas(id).stream()
+                .map(MatriculaEmTurmaResponseDTO::from)
+                .toList()));
     }
 }

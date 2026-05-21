@@ -1,6 +1,7 @@
 package br.edu.ghflusao.service;
 
 import br.edu.ghflusao.domain.Disciplina;
+import br.edu.ghflusao.domain.MatriculaEmTurma;
 import br.edu.ghflusao.domain.Professor;
 import br.edu.ghflusao.domain.Turma;
 import br.edu.ghflusao.dto.request.TurmaRequestDTO;
@@ -60,6 +61,14 @@ public class TurmaService {
 
     @Transactional(readOnly = true)
     public List<Turma> listar(String semestre, Integer ano) {
+        return listar(semestre, ano, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Turma> listar(String semestre, Integer ano, Long cursoId) {
+        if (cursoId != null) {
+            return turmaRepository.findByCursoIdAndPeriodo(cursoId, semestre, ano);
+        }
         if (semestre != null && ano != null) {
             return turmaRepository.findBySemestreAndAnoAndAtivoTrue(semestre, ano);
         }
@@ -132,7 +141,7 @@ public class TurmaService {
     }
 
     @Transactional(readOnly = true)
-    public List<?> listarAlunosDaTurma(Long turmaId) {
+    public List<MatriculaEmTurma> listarAlunosDaTurma(Long turmaId) {
         return matriculaService.getMatriculasPorTurma(turmaId);
     }
 

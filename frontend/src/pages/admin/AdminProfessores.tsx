@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -24,6 +25,7 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
+import { Pagination } from '../../components/ui/Pagination'
 import { Spinner } from '../../components/ui/Spinner'
 import type { Professor } from '../../types'
 
@@ -43,11 +45,15 @@ type FormData = z.input<typeof schema>
 
 const SELECT_CLS =
   'w-full h-10 rounded-lg border border-surface-border bg-white px-3 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20'
+const PAGE_SIZE = 12
 
 export function AdminProfessores() {
   const qc = useQueryClient()
+  const [searchParams] = useSearchParams()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Professor | null>(null)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
   const [alert, setAlert] = useState<{
     tone: 'success' | 'error'
     msg: string
@@ -57,6 +63,40 @@ export function AdminProfessores() {
     queryKey: ['professores'],
     queryFn: listarProfessores
   })
+  const filtroProfessor = searchParams.get('professor')?.toLowerCase() ?? ''
+
+  const filteredProfessores = useMemo(() => {
+    const list = professores.data ?? []
+    const term = search.trim().toLowerCase()
+    return list.filter(p => {
+      const matchDashboard = filtroProfessor
+        ? p.nome.toLowerCase().includes(filtroProfessor)
+        : true
+      const matchSearch = !term
+        ? true
+        : [
+            p.nome,
+            p.email,
+            p.cpf,
+            p.telefone,
+            p.registro,
+            p.titulacao,
+            p.regimeTrabalho
+          ]
+            .filter(Boolean)
+            .some(value => String(value).toLowerCase().includes(term))
+      return matchDashboard && matchSearch
+    })
+  }, [filtroProfessor, professores.data, search])
+
+  const currentPage = Math.min(
+    page,
+    Math.max(1, Math.ceil(filteredProfessores.length / PAGE_SIZE))
+  )
+  const pagedProfessores = filteredProfessores.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  )
 
   const form = useForm<FormData>({ resolver: zodResolver(schema) })
 
@@ -172,6 +212,45 @@ export function AdminProfessores() {
         </div>
       )}
 
+      {filtroProfessor && (
+        <Card className="mb-4">
+          <p className="text-sm text-text">
+            Filtro da dashboard:{' '}
+            <span className="font-semibold">
+              professor {searchParams.get('professor')}
+            </span>
+          </p>
+        </Card>
+      )}
+
+      <Card className="mb-4" noPadding>
+        <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-[1fr_auto] md:items-end">
+          <div>
+            <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
+              Pesquisar professores
+            </label>
+            <Input
+              placeholder="Nome, email, registro, telefone ou titulacao..."
+              value={search}
+              onChange={e => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
+            />
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setSearch('')
+              setPage(1)
+            }}
+          >
+            Limpar
+          </Button>
+        </div>
+      </Card>
+
       {professores.isLoading ? (
         <div className="flex items-center justify-center gap-2 text-text-muted py-10">
           <Spinner /> Carregando...
@@ -181,6 +260,7 @@ export function AdminProfessores() {
           <p className="text-primary-dark text-sm">Erro ao carregar professores.</p>
         </Card>
       ) : (
+        <>
         <Table>
           <THead>
             <TR>
@@ -194,10 +274,10 @@ export function AdminProfessores() {
             </TR>
           </THead>
           <TBody>
-            {(!professores.data || professores.data.length === 0) && (
-              <EmptyRow colSpan={7}>Nenhum professor cadastrado.</EmptyRow>
+            {filteredProfessores.length === 0 && (
+              <EmptyRow colSpan={7}>Nenhum professor encontrado.</EmptyRow>
             )}
-            {professores.data?.map(p => (
+            {pagedProfessores.map(p => (
               <TR key={p.id}>
                 <TD>{p.nome}</TD>
                 <TD>
@@ -226,6 +306,13 @@ export function AdminProfessores() {
             ))}
           </TBody>
         </Table>
+        <Pagination
+          page={currentPage}
+          pageSize={PAGE_SIZE}
+          total={filteredProfessores.length}
+          onPageChange={setPage}
+        />
+        </>
       )}
 
       <Modal

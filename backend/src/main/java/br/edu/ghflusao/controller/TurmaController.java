@@ -1,9 +1,13 @@
 package br.edu.ghflusao.controller;
 
 import br.edu.ghflusao.dto.request.AlocarProfessorRequestDTO;
+import br.edu.ghflusao.dto.request.ProvaLoteRequestDTO;
 import br.edu.ghflusao.dto.request.ProvaRequestDTO;
 import br.edu.ghflusao.dto.request.TurmaRequestDTO;
 import br.edu.ghflusao.dto.response.ApiResponse;
+import br.edu.ghflusao.dto.response.MatriculaEmTurmaResponseDTO;
+import br.edu.ghflusao.dto.response.ProvaResponseDTO;
+import br.edu.ghflusao.dto.response.TurmaResponseDTO;
 import br.edu.ghflusao.service.ProvaService;
 import br.edu.ghflusao.service.TurmaService;
 import jakarta.validation.Valid;
@@ -27,30 +31,33 @@ public class TurmaController {
     private final ProvaService provaService;
 
     @GetMapping("/turmas")
-    @PreAuthorize("hasAnyRole('ALUNO','PROFESSOR','COORDENADOR','SECRETARIA')")
+    @PreAuthorize("hasAnyRole('ALUNO','PROFESSOR','COORDENADOR','SECRETARIA','ADMIN')")
     public ResponseEntity<ApiResponse<?>> listar(
             @RequestParam(required = false) String semestre,
-            @RequestParam(required = false) Integer ano
+            @RequestParam(required = false) Integer ano,
+            @RequestParam(required = false) Long cursoId
     ) {
-        return ResponseEntity.ok(ApiResponse.ok(turmaService.listar(semestre, ano)));
+        return ResponseEntity.ok(ApiResponse.ok(turmaService.listar(semestre, ano, cursoId).stream()
+                .map(TurmaResponseDTO::from)
+                .toList()));
     }
 
     @GetMapping("/turmas/{id}")
     @PreAuthorize("hasAnyRole('COORDENADOR','ADMIN')")
     public ResponseEntity<ApiResponse<?>> buscar(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(turmaService.buscarPorId(id)));
+        return ResponseEntity.ok(ApiResponse.ok(TurmaResponseDTO.from(turmaService.buscarPorId(id))));
     }
 
     @PostMapping("/disciplinas/{id}/turmas")
-    @PreAuthorize("hasRole('COORDENADOR')")
+    @PreAuthorize("hasAnyRole('COORDENADOR','ADMIN')")
     public ResponseEntity<ApiResponse<?>> criarTurma(@PathVariable Long id, @Valid @RequestBody TurmaRequestDTO dto) {
-        return ResponseEntity.ok(ApiResponse.ok(turmaService.criarTurma(id, dto), "Turma criada com sucesso."));
+        return ResponseEntity.ok(ApiResponse.ok(TurmaResponseDTO.from(turmaService.criarTurma(id, dto)), "Turma criada com sucesso."));
     }
 
     @PutMapping("/turmas/{id}")
     @PreAuthorize("hasAnyRole('COORDENADOR','ADMIN')")
     public ResponseEntity<ApiResponse<?>> atualizar(@PathVariable Long id, @Valid @RequestBody TurmaRequestDTO dto) {
-        return ResponseEntity.ok(ApiResponse.ok(turmaService.atualizar(id, dto), "Turma atualizada."));
+        return ResponseEntity.ok(ApiResponse.ok(TurmaResponseDTO.from(turmaService.atualizar(id, dto)), "Turma atualizada."));
     }
 
     @PutMapping("/turmas/{id}/professor")
@@ -58,7 +65,7 @@ public class TurmaController {
     public ResponseEntity<ApiResponse<?>> alocarProfessor(@PathVariable Long id, @RequestBody AlocarProfessorRequestDTO dto) {
         Long professorId = dto != null ? dto.professorId() : null;
         String message = professorId != null ? "Professor alocado com sucesso." : "Professor desalocado com sucesso.";
-        return ResponseEntity.ok(ApiResponse.ok(turmaService.alocarProfessor(id, professorId), message));
+        return ResponseEntity.ok(ApiResponse.ok(TurmaResponseDTO.from(turmaService.alocarProfessor(id, professorId)), message));
     }
 
     @DeleteMapping("/turmas/{id}")
@@ -69,14 +76,27 @@ public class TurmaController {
     }
 
     @PostMapping("/turmas/{id}/provas")
-    @PreAuthorize("hasRole('PROFESSOR')")
+    @PreAuthorize("hasAnyRole('PROFESSOR','ADMIN')")
     public ResponseEntity<ApiResponse<?>> cadastrarProva(@PathVariable Long id, @Valid @RequestBody ProvaRequestDTO dto) {
-        return ResponseEntity.ok(ApiResponse.ok(provaService.cadastrarProva(id, dto), "Prova cadastrada."));
+        return ResponseEntity.ok(ApiResponse.ok(ProvaResponseDTO.from(provaService.cadastrarProva(id, dto)), "Prova cadastrada."));
+    }
+
+    @PostMapping("/turmas/{id}/provas/lote")
+    @PreAuthorize("hasAnyRole('PROFESSOR','ADMIN')")
+    public ResponseEntity<ApiResponse<?>> cadastrarProvas(@PathVariable Long id, @Valid @RequestBody ProvaLoteRequestDTO dto) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                provaService.cadastrarProvas(id, dto.provas()).stream()
+                        .map(ProvaResponseDTO::from)
+                        .toList(),
+                "Provas cadastradas."
+        ));
     }
 
     @GetMapping("/turmas/{id}/alunos")
-    @PreAuthorize("hasAnyRole('PROFESSOR','COORDENADOR')")
+    @PreAuthorize("hasAnyRole('PROFESSOR','COORDENADOR','ADMIN')")
     public ResponseEntity<ApiResponse<?>> listarAlunos(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(turmaService.listarAlunosDaTurma(id)));
+        return ResponseEntity.ok(ApiResponse.ok(turmaService.listarAlunosDaTurma(id).stream()
+                .map(MatriculaEmTurmaResponseDTO::from)
+                .toList()));
     }
 }

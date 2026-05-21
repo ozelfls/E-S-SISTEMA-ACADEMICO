@@ -1,0 +1,81 @@
+services:
+  database:
+    build:
+      context: ./database
+    image: ghflusao-database:prod
+    container_name: ghflusao-database
+    restart: unless-stopped
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD}
+      APP_USER: ${APP_USER}
+      APP_USER_PASSWORD: ${APP_USER_PASSWORD}
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+    networks:
+      - ghflusao-net
+    healthcheck:
+      test: ["CMD-SHELL", "healthcheck.sh || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 120s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    image: ghflusao-backend:prod
+    container_name: ghflusao-backend
+    restart: unless-stopped
+    environment:
+      ORACLE_JDBC_URL: ${ORACLE_JDBC_URL}
+      ORACLE_USER: ${ORACLE_USER}
+      ORACLE_PASSWORD: ${APP_USER_PASSWORD}
+      ORACLE_SCHEMA: ${ORACLE_SCHEMA}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      DB_POOL_MAX: ${DB_POOL_MAX:-8}
+      DB_POOL_MIN_IDLE: ${DB_POOL_MIN_IDLE:-1}
+    depends_on:
+      database:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - ghflusao-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: /api
+    image: ghflusao-frontend:prod
+    container_name: ghflusao-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    networks:
+      - ghflusao-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  ghflusao-net:
+    driver: bridge
+
+volumes:
+  oracle-data:

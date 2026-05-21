@@ -66,8 +66,8 @@ export interface Aluno {
   nome: string
   matriculaId: number
   turno: Turno
-  curso: Curso
-  email: string
+  curso: Curso | null
+  email: string | null
 }
 
 export interface MatriculaEmTurma {

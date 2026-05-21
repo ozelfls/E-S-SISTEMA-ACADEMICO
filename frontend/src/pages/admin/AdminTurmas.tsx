@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -26,6 +27,7 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
+import { Pagination } from '../../components/ui/Pagination'
 import { Spinner } from '../../components/ui/Spinner'
 import { AlocarProfessorModal } from '../../components/admin/AlocarProfessorModal'
 import type { Turma } from '../../types'
@@ -48,14 +50,25 @@ type FormData = z.input<typeof schema>
 
 const SELECT_CLS =
   'w-full h-10 rounded-lg border border-surface-border bg-white px-3 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20'
+const PAGE_SIZE = 12
+
+function statusLabel(status?: Turma['status']) {
+  if (status === 'OPEN') return 'Abertas'
+  if (status === 'IN_PROGRESS') return 'Em andamento'
+  if (status === 'CLOSED') return 'Encerradas'
+  return 'Sem status'
+}
 
 export function AdminTurmas() {
   const qc = useQueryClient()
+  const [searchParams] = useSearchParams()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Turma | null>(null)
   const [alocarTurma, setAlocarTurma] = useState<Turma | null>(null)
   const [filtroSemestre, setFiltroSemestre] = useState<string>('')
   const [filtroAno, setFiltroAno] = useState<number | ''>('')
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
   const [alert, setAlert] = useState<{
     tone: 'success' | 'error'
     msg: string
@@ -73,15 +86,61 @@ export function AdminTurmas() {
     queryKey: ['professores'],
     queryFn: listarProfessores
   })
+  const filtroTurno = searchParams.get('turno')?.toLowerCase() ?? ''
+  const filtroStatus = searchParams.get('status')?.toLowerCase() ?? ''
+  const filtroTurma = searchParams.get('turma')?.toLowerCase() ?? ''
 
   const filtered = useMemo(() => {
     const list = turmas.data ?? []
+    const term = search.trim().toLowerCase()
     return list.filter(t => {
       const matchSemestre = filtroSemestre ? t.semestre === filtroSemestre : true
       const matchAno = filtroAno ? t.ano === filtroAno : true
-      return matchSemestre && matchAno
+      const matchTurno = filtroTurno
+        ? (t.turno?.toLowerCase() ?? 'nao informado') === filtroTurno
+        : true
+      const matchStatus = filtroStatus
+        ? statusLabel(t.status).toLowerCase() === filtroStatus ||
+          t.status?.toLowerCase() === filtroStatus
+        : true
+      const matchTurma = filtroTurma
+        ? t.codigo.toLowerCase().includes(filtroTurma)
+        : true
+      const matchSearch = !term
+        ? true
+        : [
+            t.codigo,
+            t.disciplina?.nome,
+            t.disciplina?.codigo,
+            t.disciplina?.curso?.nome,
+            t.professor?.nome,
+            t.semestre,
+            String(t.ano),
+            t.sala,
+            t.turno,
+            statusLabel(t.status)
+          ]
+            .filter(Boolean)
+            .some(value => String(value).toLowerCase().includes(term))
+      return (
+        matchSemestre &&
+        matchAno &&
+        matchTurno &&
+        matchStatus &&
+        matchTurma &&
+        matchSearch
+      )
     })
-  }, [turmas.data, filtroSemestre, filtroAno])
+  }, [turmas.data, filtroSemestre, filtroAno, filtroStatus, filtroTurma, filtroTurno, search])
+
+  const currentPage = Math.min(
+    page,
+    Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  )
+  const pagedTurmas = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  )
 
   const semestresDisponiveis = useMemo(
     () => Array.from(new Set((turmas.data ?? []).map(t => t.semestre))).sort(),
@@ -218,8 +277,23 @@ export function AdminTurmas() {
         </div>
       )}
 
+      {(filtroTurno || filtroStatus || filtroTurma) && (
+        <Card className="mb-4">
+          <p className="text-sm text-text">
+            Filtro da dashboard:{' '}
+            <span className="font-semibold">
+              {filtroTurno ? `turno ${searchParams.get('turno')}` : ''}
+              {filtroTurno && (filtroStatus || filtroTurma) ? ' · ' : ''}
+              {filtroStatus ? `status ${searchParams.get('status')}` : ''}
+              {filtroStatus && filtroTurma ? ' · ' : ''}
+              {filtroTurma ? `turma ${searchParams.get('turma')}` : ''}
+            </span>
+          </p>
+        </Card>
+      )}
+
       <Card className="mb-4" noPadding>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_2fr_auto] gap-3 p-5 lg:items-end">
           <div>
             <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
               Semestre
@@ -256,6 +330,31 @@ export function AdminTurmas() {
               ))}
             </select>
           </div>
+          <div>
+            <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
+              Pesquisar turmas
+            </label>
+            <Input
+              placeholder="Codigo, disciplina, curso, professor, sala..."
+              value={search}
+              onChange={e => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
+            />
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setFiltroSemestre('')
+              setFiltroAno('')
+              setSearch('')
+              setPage(1)
+            }}
+          >
+            Limpar
+          </Button>
         </div>
       </Card>
 
@@ -268,6 +367,7 @@ export function AdminTurmas() {
           <p className="text-primary-dark text-sm">Erro ao carregar turmas.</p>
         </Card>
       ) : (
+        <>
         <Table>
           <THead>
             <TR>
@@ -283,7 +383,7 @@ export function AdminTurmas() {
             {filtered.length === 0 && (
               <EmptyRow colSpan={6}>Nenhuma turma cadastrada.</EmptyRow>
             )}
-            {filtered.map(t => (
+            {pagedTurmas.map(t => (
               <TR key={t.id}>
                 <TD>
                   <span className="font-mono text-xs font-semibold">
@@ -322,6 +422,13 @@ export function AdminTurmas() {
             ))}
           </TBody>
         </Table>
+        <Pagination
+          page={currentPage}
+          pageSize={PAGE_SIZE}
+          total={filtered.length}
+          onPageChange={setPage}
+        />
+        </>
       )}
 
       <Modal

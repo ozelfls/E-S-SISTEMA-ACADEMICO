@@ -25,7 +25,7 @@ public class ProfessorController {
     private final ProfessorService professorService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('COORDENADOR','DIRETOR','SECRETARIA')")
+    @PreAuthorize("hasAnyRole('COORDENADOR','DIRETOR','SECRETARIA','ADMIN')")
     public ResponseEntity<ApiResponse<?>> listar() {
         return ResponseEntity.ok(ApiResponse.ok(professorService.listar()));
     }

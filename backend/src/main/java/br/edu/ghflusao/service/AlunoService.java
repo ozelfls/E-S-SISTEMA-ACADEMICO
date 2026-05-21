@@ -22,6 +22,9 @@ import java.util.List;
 @Slf4j
 public class AlunoService {
 
+    private static final int PRIMEIRA_MATRICULA = 100000;
+    private static final int ULTIMA_MATRICULA = 999999;
+
     private final AlunoRepository alunoRepository;
     private final CursoRepository cursoRepository;
     private final MatriculaEmTurmaRepository matriculaRepository;
@@ -32,7 +35,7 @@ public class AlunoService {
         Aluno aluno = new Aluno();
         aluno.setNome(dto.nome());
         aluno.setCpf(dto.cpf());
-        aluno.setMatriculaId(proximaMatricula(dto.matriculaId()));
+        aluno.setMatriculaId(proximaMatricula());
         aluno.setTurno(dto.turno());
         aluno.setCurso(curso);
         aluno.setEmail(dto.email());
@@ -81,14 +84,12 @@ public class AlunoService {
         log.info("Aluno excluído: id={}, matriculaId={}", aluno.getId(), aluno.getMatriculaId());
     }
 
-    private Integer proximaMatricula(Integer matriculaInformada) {
-        if (matriculaInformada != null) {
-            if (alunoRepository.existsByMatriculaId(matriculaInformada)) {
-                throw new BusinessException("Matrícula já cadastrada para outro aluno.");
-            }
-            return matriculaInformada;
+    private Integer proximaMatricula() {
+        Integer proxima = Math.max(alunoRepository.nextMatriculaId(), PRIMEIRA_MATRICULA);
+        if (proxima > ULTIMA_MATRICULA) {
+            throw new BusinessException("Limite de matriculas de 6 digitos atingido.");
         }
-        return alunoRepository.findMaiorMatriculaId() + 1;
+        return proxima;
     }
 
     private AlunoResponseDTO toResponse(Aluno aluno) {

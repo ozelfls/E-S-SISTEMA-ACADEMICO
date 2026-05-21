@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -25,6 +26,7 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
+import { Pagination } from '../../components/ui/Pagination'
 import { Spinner } from '../../components/ui/Spinner'
 import type { Aluno, Turno } from '../../types'
 
@@ -33,7 +35,6 @@ const cpfRegex = /^(\d{11}|\d{3}\.\d{3}\.\d{3}-\d{2})$/
 const schema = z.object({
   nome: z.string().min(3, 'Mínimo 3 caracteres'),
   cpf: z.string().regex(cpfRegex, 'CPF inválido'),
-  matriculaId: z.coerce.number().int().min(1, 'Informe a matrícula'),
   turno: z.enum(['MANHA', 'TARDE', 'NOITE', 'INTEGRAL']),
   cursoId: z.coerce.number().int().min(1, 'Selecione o curso'),
   email: z
@@ -48,11 +49,16 @@ type FormData = z.input<typeof schema>
 
 const SELECT_CLS =
   'w-full h-10 rounded-lg border border-surface-border bg-white px-3 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20'
+const PAGE_SIZE = 12
+const formatMatricula = (value: number) => String(value).padStart(6, '0')
 
 export function AdminAlunos() {
   const qc = useQueryClient()
+  const [searchParams] = useSearchParams()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Aluno | null>(null)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
   const [alert, setAlert] = useState<{
     tone: 'success' | 'error'
     msg: string
@@ -60,6 +66,36 @@ export function AdminAlunos() {
 
   const alunos = useQuery({ queryKey: ['alunos'], queryFn: listarAlunos })
   const cursos = useQuery({ queryKey: ['cursos'], queryFn: listarCursos })
+  const filtroCurso = searchParams.get('curso')?.toLowerCase() ?? ''
+  const filtroAluno = searchParams.get('aluno')?.toLowerCase() ?? ''
+
+  const filteredAlunos = useMemo(() => {
+    const list = alunos.data ?? []
+    const term = search.trim().toLowerCase()
+    return list.filter(a => {
+      const matchCurso = filtroCurso
+        ? a.curso?.nome?.toLowerCase() === filtroCurso
+        : true
+      const matchAluno = filtroAluno
+        ? a.nome.toLowerCase().includes(filtroAluno)
+        : true
+      const matchSearch = !term
+        ? true
+        : [a.nome, a.email, String(a.matriculaId), a.curso?.nome, a.turno]
+            .filter(Boolean)
+            .some(value => String(value).toLowerCase().includes(term))
+      return matchCurso && matchAluno && matchSearch
+    })
+  }, [alunos.data, filtroAluno, filtroCurso, search])
+
+  const currentPage = Math.min(
+    page,
+    Math.max(1, Math.ceil(filteredAlunos.length / PAGE_SIZE))
+  )
+  const pagedAlunos = filteredAlunos.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  )
 
   const form = useForm<FormData>({ resolver: zodResolver(schema) })
 
@@ -68,7 +104,6 @@ export function AdminAlunos() {
     form.reset({
       nome: '',
       cpf: '',
-      matriculaId: undefined,
       turno: 'NOITE',
       cursoId: cursos.data?.[0]?.id,
       email: ''
@@ -81,7 +116,6 @@ export function AdminAlunos() {
     form.reset({
       nome: a.nome,
       cpf: '',
-      matriculaId: a.matriculaId,
       turno: a.turno,
       cursoId: a.curso?.id ?? cursos.data?.[0]?.id,
       email: a.email ?? ''
@@ -97,10 +131,12 @@ export function AdminAlunos() {
   const mutation = useMutation({
     mutationFn: (payload: AlunoPayload) =>
       editing ? atualizarAluno(editing.id, payload) : criarAluno(payload),
-    onSuccess: () => {
+    onSuccess: data => {
       setAlert({
         tone: 'success',
-        msg: editing ? 'Aluno atualizado.' : 'Aluno cadastrado.'
+        msg: editing
+          ? 'Aluno atualizado.'
+          : `Aluno cadastrado. Matricula ${formatMatricula(data.matriculaId)}.`
       })
       closeModal()
       qc.invalidateQueries({ queryKey: ['alunos'] })
@@ -137,7 +173,6 @@ export function AdminAlunos() {
     const payload: AlunoPayload = {
       nome: values.nome,
       cpf: values.cpf,
-      matriculaId: Number(values.matriculaId),
       turno: values.turno as Turno,
       cursoId: Number(values.cursoId),
       email: values.email || undefined
@@ -165,6 +200,47 @@ export function AdminAlunos() {
         </div>
       )}
 
+      {(filtroCurso || filtroAluno) && (
+        <Card className="mb-4">
+          <p className="text-sm text-text">
+            Filtro da dashboard:{' '}
+            <span className="font-semibold">
+              {filtroCurso ? `curso ${searchParams.get('curso')}` : ''}
+              {filtroCurso && filtroAluno ? ' · ' : ''}
+              {filtroAluno ? `aluno ${searchParams.get('aluno')}` : ''}
+            </span>
+          </p>
+        </Card>
+      )}
+
+      <Card className="mb-4" noPadding>
+        <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-[1fr_auto] md:items-end">
+          <div>
+            <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
+              Pesquisar alunos
+            </label>
+            <Input
+              placeholder="Nome, email, matricula, curso ou turno..."
+              value={search}
+              onChange={e => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
+            />
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setSearch('')
+              setPage(1)
+            }}
+          >
+            Limpar
+          </Button>
+        </div>
+      </Card>
+
       {alunos.isLoading ? (
         <div className="flex items-center justify-center gap-2 text-text-muted py-10">
           <Spinner /> Carregando alunos...
@@ -174,6 +250,7 @@ export function AdminAlunos() {
           <p className="text-primary-dark text-sm">Erro ao carregar alunos.</p>
         </Card>
       ) : (
+        <>
         <Table>
           <THead>
             <TR>
@@ -186,14 +263,14 @@ export function AdminAlunos() {
             </TR>
           </THead>
           <TBody>
-            {(!alunos.data || alunos.data.length === 0) && (
-              <EmptyRow colSpan={6}>Nenhum aluno cadastrado.</EmptyRow>
+            {filteredAlunos.length === 0 && (
+              <EmptyRow colSpan={6}>Nenhum aluno encontrado.</EmptyRow>
             )}
-            {alunos.data?.map(a => (
+            {pagedAlunos.map(a => (
               <TR key={a.id}>
                 <TD>
                   <span className="font-mono text-xs font-semibold">
-                    {a.matriculaId}
+                    {formatMatricula(a.matriculaId)}
                   </span>
                 </TD>
                 <TD>{a.nome}</TD>
@@ -219,6 +296,13 @@ export function AdminAlunos() {
             ))}
           </TBody>
         </Table>
+        <Pagination
+          page={currentPage}
+          pageSize={PAGE_SIZE}
+          total={filteredAlunos.length}
+          onPageChange={setPage}
+        />
+        </>
       )}
 
       <Modal
@@ -250,13 +334,11 @@ export function AdminAlunos() {
             </div>
             <div>
               <label className="block text-sm font-medium text-text mb-1">
-                Nº Matrícula
+                Matricula
               </label>
-              <Input
-                type="number"
-                {...form.register('matriculaId')}
-                error={form.formState.errors.matriculaId?.message}
-              />
+              <div className="flex h-10 items-center rounded-lg border border-surface-border bg-surface px-3 text-sm text-text-muted">
+                {editing ? formatMatricula(editing.matriculaId) : 'Gerada automaticamente'}
+              </div>
             </div>
           </div>
           <div>

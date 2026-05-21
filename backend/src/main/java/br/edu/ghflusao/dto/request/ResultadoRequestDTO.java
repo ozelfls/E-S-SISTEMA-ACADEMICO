@@ -10,6 +10,10 @@ public record ResultadoRequestDTO(
         @NotNull @Min(0) @Max(10) Double nota,
         @NotNull Boolean presente,
         LocalDate data,
-        Integer duracao
+        @Min(1) @Max(600) Integer duracao,
+        String motivoAlteracao
 ) {
+    public ResultadoRequestDTO(Double nota, Boolean presente, LocalDate data, Integer duracao) {
+        this(nota, presente, data, duracao, null);
+    }
 }

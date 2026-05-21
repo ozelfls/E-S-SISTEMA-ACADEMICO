@@ -8,12 +8,14 @@ spring:
     password: ${ORACLE_PASSWORD}
     driver-class-name: oracle.jdbc.OracleDriver
     hikari:
-      maximum-pool-size: 5
-      minimum-idle: 1
-      connection-timeout: 30000
-      idle-timeout: 600000
+      maximum-pool-size: ${DB_POOL_MAX:5}
+      minimum-idle: ${DB_POOL_MIN_IDLE:1}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT:30000}
+      idle-timeout: ${DB_IDLE_TIMEOUT:600000}
+      max-lifetime: ${DB_MAX_LIFETIME:1800000}
 
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: none
     show-sql: false
@@ -28,11 +30,17 @@ spring:
     locations: classpath:db
     baseline-on-migrate: true
     schemas: ${ORACLE_SCHEMA:GHFLUSAO}
+    ignore-migration-patterns: "versioned:missing"
 
 server:
   port: ${PORT:8080}
   servlet:
     context-path: /api
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain,text/css,application/javascript
+    min-response-size: 1024
+  shutdown: graceful
 
 jwt:
   secret: ${JWT_SECRET}
@@ -47,9 +55,25 @@ springdoc:
     enabled: ${SWAGGER_ENABLED:true}
   api-docs:
     path: /api-docs
+    enabled: ${SWAGGER_ENABLED:true}
 
 management:
   endpoints:
     web:
       exposure:
         include: health
+  endpoint:
+    health:
+      show-details: never
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+springdoc:
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}

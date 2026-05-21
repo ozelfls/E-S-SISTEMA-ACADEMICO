@@ -47,6 +47,47 @@ Aplicação web:
 
 - `http://localhost:5173`
 
+### Dockerfiles
+
+O projeto possui Dockerfile para os três serviços principais:
+
+- `database/Dockerfile` -> Oracle Free local com usuário `GHFLUSAO`
+- `backend/Dockerfile` -> Spring Boot Java 21 com build Maven multi-stage
+- `frontend/Dockerfile` -> React/Vite compilado e servido por Nginx
+
+Build das imagens:
+
+```bash
+docker build -t ghflusao-database ./database
+docker build -t ghflusao-backend ./backend
+docker build --build-arg VITE_API_URL=http://localhost:8080/api -t ghflusao-frontend ./frontend
+```
+
+Execução manual em rede Docker:
+
+```bash
+docker network create ghflusao-net
+
+docker run -d --name ghflusao-oracle --network ghflusao-net -p 1521:1521 \
+  -e ORACLE_PASSWORD=oracle \
+  -e APP_USER=GHFLUSAO \
+  -e APP_USER_PASSWORD=ghflusao123 \
+  ghflusao-database
+
+docker run -d --name ghflusao-backend --network ghflusao-net -p 8080:8080 \
+  -e ORACLE_JDBC_URL=jdbc:oracle:thin:@//ghflusao-oracle:1521/FREEPDB1 \
+  -e ORACLE_USER=GHFLUSAO \
+  -e ORACLE_PASSWORD=ghflusao123 \
+  -e ORACLE_SCHEMA=GHFLUSAO \
+  -e JWT_SECRET=ZGV2bG9jYWxzZWNyZXRibGFua3NwYWNlMzJjaGFyc21pbmFhYWFhYWFhYWFhYWFhYWFhYWE= \
+  -e JWT_EXPIRATION=86400000 \
+  -e CORS_ORIGINS=http://localhost:5173 \
+  -e SWAGGER_ENABLED=true \
+  ghflusao-backend
+
+docker run -d --name ghflusao-frontend -p 5173:80 ghflusao-frontend
+```
+
 ### Build de validação
 
 ```bash

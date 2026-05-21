@@ -51,4 +51,9 @@ public class ConsultaController {
     public ResponseEntity<ApiResponse<?>> buscar(@RequestParam String q) {
         return ResponseEntity.ok(ApiResponse.ok(consultaService.buscar(q)));
     }
+
+    @GetMapping("/relatorio-academico")
+    public ResponseEntity<ApiResponse<?>> relatorioAcademico() {
+        return ResponseEntity.ok(ApiResponse.ok(consultaService.relatorioAcademico()));
+    }
 }

@@ -17,8 +17,9 @@ import { DiretorDashboard } from './pages/diretor/DiretorDashboard'
 import { Cursos } from './pages/diretor/Cursos'
 import { AdminDashboard } from './pages/admin/AdminDashboard'
 import { AdminCursos } from './pages/admin/AdminCursos'
-import { AdminDisciplinas } from './pages/admin/AdminDisciplinas'
 import { AdminTurmas } from './pages/admin/AdminTurmas'
+import { AdminMatriculas } from './pages/admin/AdminMatriculas'
+import { AdminProvas } from './pages/admin/AdminProvas'
 import { AdminProfessores } from './pages/admin/AdminProfessores'
 import { AdminAlunos } from './pages/admin/AdminAlunos'
 import { AdminExplorar } from './pages/admin/AdminExplorar'
@@ -99,11 +100,19 @@ export default function App() {
       />
       <Route
         path="/admin/disciplinas"
-        element={<ProtectedRoute allowed={['ADMIN']}>{withLayout(<AdminDisciplinas />)}</ProtectedRoute>}
+        element={<Navigate to="/admin/cursos" replace />}
       />
       <Route
         path="/admin/turmas"
         element={<ProtectedRoute allowed={['ADMIN']}>{withLayout(<AdminTurmas />)}</ProtectedRoute>}
+      />
+      <Route
+        path="/admin/matriculas"
+        element={<ProtectedRoute allowed={['ADMIN']}>{withLayout(<AdminMatriculas />)}</ProtectedRoute>}
+      />
+      <Route
+        path="/admin/provas"
+        element={<ProtectedRoute allowed={['ADMIN']}>{withLayout(<AdminProvas />)}</ProtectedRoute>}
       />
       <Route
         path="/admin/professores"

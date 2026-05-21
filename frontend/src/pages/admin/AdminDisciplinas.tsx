@@ -25,6 +25,7 @@ import {
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
+import { Pagination } from '../../components/ui/Pagination'
 import { Spinner } from '../../components/ui/Spinner'
 import { Badge } from '../../components/ui/Badge'
 import type { Disciplina } from '../../types'
@@ -47,13 +48,23 @@ type FormData = z.input<typeof schema>
 
 const SELECT_CLS =
   'w-full h-10 rounded-lg border border-surface-border bg-white px-3 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20'
+const PAGE_SIZE = 10
 
-export function AdminDisciplinas() {
+interface AdminDisciplinasProps {
+  embedded?: boolean
+  cursoIdFixo?: number
+}
+
+export function AdminDisciplinas({
+  embedded = false,
+  cursoIdFixo
+}: AdminDisciplinasProps) {
   const qc = useQueryClient()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Disciplina | null>(null)
-  const [filterCurso, setFilterCurso] = useState<number | ''>('')
+  const [filterCurso, setFilterCurso] = useState<number | ''>(cursoIdFixo ?? '')
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
   const [alert, setAlert] = useState<{
     tone: 'success' | 'error'
     msg: string
@@ -61,14 +72,18 @@ export function AdminDisciplinas() {
 
   const cursos = useQuery({ queryKey: ['cursos'], queryFn: listarCursos })
   const disciplinas = useQuery({
-    queryKey: ['disciplinas'],
-    queryFn: () => listarDisciplinas()
+    queryKey: ['disciplinas', cursoIdFixo ?? 'todas'],
+    queryFn: () => listarDisciplinas(cursoIdFixo)
   })
 
   const filtered = useMemo(() => {
     const list = disciplinas.data ?? []
     return list.filter(d => {
-      const matchCurso = filterCurso ? d.curso?.id === filterCurso : true
+      const matchCurso = cursoIdFixo
+        ? d.curso?.id === cursoIdFixo
+        : filterCurso
+          ? d.curso?.id === filterCurso
+          : true
       const term = search.trim().toLowerCase()
       const matchTerm = !term
         ? true
@@ -76,7 +91,16 @@ export function AdminDisciplinas() {
           d.nome.toLowerCase().includes(term)
       return matchCurso && matchTerm
     })
-  }, [disciplinas.data, filterCurso, search])
+  }, [cursoIdFixo, disciplinas.data, filterCurso, search])
+
+  const currentPage = Math.min(
+    page,
+    Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  )
+  const pagedDisciplinas = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  )
 
   const form = useForm<FormData>({ resolver: zodResolver(schema) })
 
@@ -88,7 +112,7 @@ export function AdminDisciplinas() {
       creditos: 4,
       ch: 60,
       modalidade: 'PRESENCIAL',
-      cursoId: cursos.data?.[0]?.id,
+      cursoId: cursoIdFixo ?? cursos.data?.[0]?.id,
       preRequisitoId: undefined,
       ementa: ''
     })
@@ -103,7 +127,7 @@ export function AdminDisciplinas() {
       creditos: d.creditos,
       ch: d.ch,
       modalidade: d.modalidade ?? 'PRESENCIAL',
-      cursoId: d.curso?.id ?? cursos.data?.[0]?.id,
+      cursoId: cursoIdFixo ?? d.curso?.id ?? cursos.data?.[0]?.id,
       preRequisitoId: d.preRequisito?.id,
       ementa: d.ementa ?? ''
     })
@@ -163,7 +187,7 @@ export function AdminDisciplinas() {
       creditos: Number(values.creditos),
       ch: Number(values.ch),
       modalidade: values.modalidade,
-      cursoId: Number(values.cursoId),
+      cursoId: Number(cursoIdFixo ?? values.cursoId),
       preRequisitoId:
         values.preRequisitoId === undefined || values.preRequisitoId === ''
           ? undefined
@@ -175,11 +199,13 @@ export function AdminDisciplinas() {
 
   return (
     <>
+      {!embedded && (
       <PageHeader
         title="Disciplinas"
         subtitle="Gestão completa do catálogo de disciplinas."
         actions={<Button onClick={openCreate}>+ Nova disciplina</Button>}
       />
+      )}
 
       {alert && (
         <div
@@ -194,7 +220,8 @@ export function AdminDisciplinas() {
       )}
 
       <Card className="mb-4" noPadding>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-5">
+        <div className={`grid grid-cols-1 gap-3 p-5 ${cursoIdFixo ? 'md:grid-cols-[1fr_auto]' : 'sm:grid-cols-3'}`}>
+          {!cursoIdFixo && (
           <div>
             <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
               Curso
@@ -214,16 +241,25 @@ export function AdminDisciplinas() {
               ))}
             </select>
           </div>
-          <div className="sm:col-span-2">
+          )}
+          <div className={cursoIdFixo ? '' : 'sm:col-span-2'}>
             <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
               Buscar
             </label>
             <Input
               placeholder="Código ou nome..."
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
             />
           </div>
+          {embedded && (
+            <Button type="button" onClick={openCreate}>
+              + Nova disciplina
+            </Button>
+          )}
         </div>
       </Card>
 
@@ -238,6 +274,7 @@ export function AdminDisciplinas() {
           </p>
         </Card>
       ) : (
+        <>
         <Table>
           <THead>
             <TR>
@@ -254,7 +291,7 @@ export function AdminDisciplinas() {
             {filtered.length === 0 && (
               <EmptyRow colSpan={7}>Nenhuma disciplina cadastrada.</EmptyRow>
             )}
-            {filtered.map(d => (
+            {pagedDisciplinas.map(d => (
               <TR key={d.id}>
                 <TD>
                   <span className="font-mono text-xs font-semibold text-text">
@@ -295,6 +332,13 @@ export function AdminDisciplinas() {
             ))}
           </TBody>
         </Table>
+        <Pagination
+          page={currentPage}
+          pageSize={PAGE_SIZE}
+          total={filtered.length}
+          onPageChange={setPage}
+        />
+        </>
       )}
 
       <Modal
@@ -360,6 +404,7 @@ export function AdminDisciplinas() {
                 <option value="HIBRIDA">Híbrida</option>
               </select>
             </div>
+            {!cursoIdFixo && (
             <div>
               <label className="block text-sm font-medium text-text mb-1">
                 Curso
@@ -381,6 +426,7 @@ export function AdminDisciplinas() {
                 </small>
               )}
             </div>
+            )}
           </div>
 
           <div>

@@ -3,7 +3,6 @@ package br.edu.ghflusao.service;
 import br.edu.ghflusao.domain.MatriculaEmTurma;
 import br.edu.ghflusao.domain.Prova;
 import br.edu.ghflusao.domain.ResultadoProva;
-import br.edu.ghflusao.enums.Situacao;
 import br.edu.ghflusao.repository.ProvaRepository;
 import br.edu.ghflusao.repository.ResultadoProvaRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,9 +16,6 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AcademicPerformanceService {
-
-    private static final double NOTA_MINIMA = 6.0;
-    private static final double FREQUENCIA_MINIMA = 75.0;
 
     private final ResultadoProvaRepository resultadoRepository;
     private final ProvaRepository provaRepository;
@@ -50,20 +46,9 @@ public class AcademicPerformanceService {
         if (pesoTotal > 0) {
             double mediaFinal = totalComPeso / pesoTotal;
             matricula.setMediaFinal(round2(mediaFinal));
-            matricula.setSituacao(definirSituacao(matricula.getMediaFinal(), matricula.getFrequencia()));
         } else {
             matricula.setMediaFinal(null);
         }
-    }
-
-    private Situacao definirSituacao(Double mediaFinal, Double frequencia) {
-        if (mediaFinal == null || frequencia == null) {
-            return Situacao.ATIVA;
-        }
-        if (mediaFinal >= NOTA_MINIMA && frequencia >= FREQUENCIA_MINIMA) {
-            return Situacao.CONCLUIDA;
-        }
-        return Situacao.REPROVADA;
     }
 
     private double round2(double value) {

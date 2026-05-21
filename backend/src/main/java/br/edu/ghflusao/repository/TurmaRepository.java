@@ -1,6 +1,8 @@
 package br.edu.ghflusao.repository;
 
 import br.edu.ghflusao.domain.Turma;
+import br.edu.ghflusao.enums.Turno;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -10,15 +12,54 @@ import java.util.Optional;
 
 public interface TurmaRepository extends JpaRepository<Turma, Long> {
 
+    @EntityGraph(attributePaths = {"professor", "disciplina", "disciplina.curso"})
     Optional<Turma> findByIdAndAtivoTrue(Long id);
 
+    @EntityGraph(attributePaths = {"professor", "disciplina", "disciplina.curso"})
     List<Turma> findByAtivoTrue();
 
+    @EntityGraph(attributePaths = {"professor", "disciplina", "disciplina.curso"})
     List<Turma> findBySemestreAndAnoAndAtivoTrue(String semestre, Integer ano);
 
+    @EntityGraph(attributePaths = {"professor", "disciplina", "disciplina.curso"})
+    @Query("""
+            select t
+            from Turma t
+            join t.disciplina d
+            where t.ativo = true
+              and d.curso.id = :cursoId
+              and (:semestre is null or t.semestre = :semestre)
+              and (:ano is null or t.ano = :ano)
+            order by t.ano desc, t.semestre desc, d.codigo asc, t.codigo asc
+            """)
+    List<Turma> findByCursoIdAndPeriodo(
+            @Param("cursoId") Long cursoId,
+            @Param("semestre") String semestre,
+            @Param("ano") Integer ano
+    );
+
+    @EntityGraph(attributePaths = {"professor", "disciplina", "disciplina.curso"})
     List<Turma> findByProfessorIdAndAtivoTrue(Long professorId);
 
+    @EntityGraph(attributePaths = {"professor", "disciplina", "disciplina.curso"})
     List<Turma> findByDisciplinaIdAndAtivoTrue(Long disciplinaId);
+
+    @EntityGraph(attributePaths = {"professor", "disciplina", "disciplina.curso", "disciplina.preRequisito"})
+    @Query("""
+            select t
+            from Turma t
+            join t.disciplina d
+            where t.ativo = true
+              and t.status <> br.edu.ghflusao.enums.StatusTurma.CLOSED
+              and t.vagas > 0
+              and (:cursoId is null or d.curso.id = :cursoId)
+              and (:turno is null or t.turno = :turno or t.turno is null)
+            order by t.ano desc, t.semestre desc, d.codigo asc, t.codigo asc
+            """)
+    List<Turma> findCandidatasAlocacaoAutomatica(
+            @Param("cursoId") Long cursoId,
+            @Param("turno") Turno turno
+    );
 
     boolean existsByDisciplinaIdAndAtivoTrue(Long disciplinaId);
 

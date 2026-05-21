@@ -31,6 +31,7 @@ import br.edu.ghflusao.dto.response.consulta.ConsultaDTOs.ProfessorSlim;
 import br.edu.ghflusao.dto.response.consulta.ConsultaDTOs.ProfessorTurmasResponse;
 import br.edu.ghflusao.dto.response.consulta.ConsultaDTOs.ProvaResumo;
 import br.edu.ghflusao.dto.response.consulta.ConsultaDTOs.ProvaWithResultado;
+import br.edu.ghflusao.dto.response.consulta.ConsultaDTOs.RelatorioAcademicoRow;
 import br.edu.ghflusao.dto.response.consulta.ConsultaDTOs.ResultadoBrief;
 import br.edu.ghflusao.dto.response.consulta.ConsultaDTOs.SemestreResponse;
 import br.edu.ghflusao.dto.response.consulta.ConsultaDTOs.TrajetoriaResponse;
@@ -41,7 +42,9 @@ import br.edu.ghflusao.dto.response.consulta.ConsultaDTOs.TurmaDetalhesResponse;
 import br.edu.ghflusao.dto.response.consulta.ConsultaDTOs.TurmaHistorico;
 import br.edu.ghflusao.dto.response.consulta.ConsultaDTOs.TurmaSemestre;
 import br.edu.ghflusao.dto.response.consulta.ConsultaDTOs.TurmaWithCounts;
+import br.edu.ghflusao.enums.Modalidade;
 import br.edu.ghflusao.enums.Situacao;
+import br.edu.ghflusao.enums.Turno;
 import br.edu.ghflusao.exception.BusinessException;
 import br.edu.ghflusao.repository.AlunoRepository;
 import br.edu.ghflusao.repository.CursoRepository;
@@ -53,9 +56,13 @@ import br.edu.ghflusao.repository.ResultadoProvaRepository;
 import br.edu.ghflusao.repository.TurmaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Date;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -79,6 +86,7 @@ public class ConsultaService {
     private final MatriculaEmTurmaRepository matriculaRepository;
     private final ProvaRepository provaRepository;
     private final ResultadoProvaRepository resultadoRepository;
+    private final JdbcTemplate jdbc;
 
     public ProfessorTurmasResponse turmasDoProfessor(Long professorId) {
         Professor professor = professorRepository.findById(professorId)
@@ -207,19 +215,28 @@ public class ConsultaService {
         Curso c = d != null ? d.getCurso() : null;
         Professor p = t.getProfessor();
 
-        List<MatriculaEmTurma> ativos = matriculaRepository.findByTurmaIdAndSituacao(turmaId, Situacao.ATIVA);
+        List<MatriculaEmTurma> ativos = matriculaRepository.findByTurmaIdAndSituacaoWithAluno(turmaId, Situacao.ATIVA);
         List<Prova> provas = provaRepository.findByTurmaId(turmaId);
+        List<ResultadoProva> resultadosTurma = resultadoRepository.findByTurmaIdForResumo(turmaId);
+        Map<Long, List<ResultadoProva>> resultadosPorMatricula = new LinkedHashMap<>();
+        Map<Long, List<ResultadoProva>> resultadosPorProva = new LinkedHashMap<>();
+        for (ResultadoProva resultado : resultadosTurma) {
+            resultadosPorMatricula
+                    .computeIfAbsent(resultado.getMatricula().getId(), key -> new ArrayList<>())
+                    .add(resultado);
+            resultadosPorProva
+                    .computeIfAbsent(resultado.getProva().getId(), key -> new ArrayList<>())
+                    .add(resultado);
+        }
 
         List<AlunoMatriculado> alunos = ativos.stream().map(m -> {
             double somaNotaPeso = 0.0;
             double somaPesos = 0.0;
             boolean temNota = false;
-            for (Prova prova : provas) {
-                ResultadoProva rp = resultadoRepository
-                        .findByMatriculaIdAndProvaId(m.getId(), prova.getId())
-                        .orElse(null);
-                if (rp != null && rp.getNota() != null && prova.getPeso() != null) {
-                    somaNotaPeso += rp.getNota() * prova.getPeso();
+            for (ResultadoProva resultado : resultadosPorMatricula.getOrDefault(m.getId(), List.of())) {
+                Prova prova = resultado.getProva();
+                if (resultado.getNota() != null && prova.getPeso() != null) {
+                    somaNotaPeso += resultado.getNota() * prova.getPeso();
                     somaPesos += prova.getPeso();
                     temNota = true;
                 }
@@ -234,7 +251,7 @@ public class ConsultaService {
         }).toList();
 
         List<ProvaResumo> provaItems = provas.stream().map(prova -> {
-            List<ResultadoProva> rs = resultadoRepository.findByProvaId(prova.getId());
+            List<ResultadoProva> rs = resultadosPorProva.getOrDefault(prova.getId(), List.of());
             long total = rs.size();
             double soma = 0.0;
             int comNota = 0;
@@ -404,6 +421,143 @@ public class ConsultaService {
         int total = alunos.size() + professores.size() + disciplinas.size() + turmas.size() + cursos.size();
 
         return new BuscarResponse(query, alunos, professores, disciplinas, turmas, cursos, total);
+    }
+
+    public List<RelatorioAcademicoRow> relatorioAcademico() {
+        return jdbc.query("""
+                select aluno_id, aluno_nome, aluno_matricula, aluno_email, aluno_turno,
+                       curso_id, curso_nome, curso_ch_total,
+                       disciplina_id, disciplina_codigo, disciplina_nome, disciplina_ch, disciplina_modalidade,
+                       turma_id, turma_codigo, turma_turno, turma_semestre, turma_ano, turma_sala, turma_horario, turma_vagas,
+                       professor_id, professor_nome, professor_email, professor_titulacao,
+                       matricula_id, matricula_data, matricula_situacao, matricula_frequencia, matricula_media_final,
+                       prova_id, prova_codigo, prova_peso, prova_conteudo,
+                       resultado_id, resultado_nota, resultado_presente, resultado_data_realizacao, resultado_duracao_min
+                  from relatorio_academico_cache
+                 order by matricula_id desc, prova_id
+                """, (rs, rowNum) -> new RelatorioAcademicoRow(
+                nullableLong(rs, "aluno_id"),
+                rs.getString("aluno_nome"),
+                nullableInt(rs, "aluno_matricula"),
+                rs.getString("aluno_email"),
+                enumValue(Turno.class, rs.getString("aluno_turno")),
+                nullableLong(rs, "curso_id"),
+                rs.getString("curso_nome"),
+                nullableInt(rs, "curso_ch_total"),
+                nullableLong(rs, "disciplina_id"),
+                rs.getString("disciplina_codigo"),
+                rs.getString("disciplina_nome"),
+                nullableInt(rs, "disciplina_ch"),
+                enumValue(Modalidade.class, rs.getString("disciplina_modalidade")),
+                nullableLong(rs, "turma_id"),
+                rs.getString("turma_codigo"),
+                enumValue(Turno.class, rs.getString("turma_turno")),
+                rs.getString("turma_semestre"),
+                nullableInt(rs, "turma_ano"),
+                rs.getString("turma_sala"),
+                rs.getString("turma_horario"),
+                nullableInt(rs, "turma_vagas"),
+                nullableLong(rs, "professor_id"),
+                rs.getString("professor_nome"),
+                rs.getString("professor_email"),
+                rs.getString("professor_titulacao"),
+                nullableLong(rs, "matricula_id"),
+                nullableDate(rs, "matricula_data"),
+                enumValue(Situacao.class, rs.getString("matricula_situacao")),
+                nullableDouble(rs, "matricula_frequencia"),
+                nullableDouble(rs, "matricula_media_final"),
+                nullableLong(rs, "prova_id"),
+                rs.getString("prova_codigo"),
+                nullableDouble(rs, "prova_peso"),
+                rs.getString("prova_conteudo"),
+                nullableLong(rs, "resultado_id"),
+                nullableDouble(rs, "resultado_nota"),
+                nullableBoolean(rs, "resultado_presente"),
+                nullableDate(rs, "resultado_data_realizacao"),
+                nullableInt(rs, "resultado_duracao_min")
+        ));
+    }
+
+    private static Long nullableLong(ResultSet rs, String column) throws SQLException {
+        long value = rs.getLong(column);
+        return rs.wasNull() ? null : value;
+    }
+
+    private static Integer nullableInt(ResultSet rs, String column) throws SQLException {
+        int value = rs.getInt(column);
+        return rs.wasNull() ? null : value;
+    }
+
+    private static Double nullableDouble(ResultSet rs, String column) throws SQLException {
+        double value = rs.getDouble(column);
+        return rs.wasNull() ? null : value;
+    }
+
+    private static Boolean nullableBoolean(ResultSet rs, String column) throws SQLException {
+        int value = rs.getInt(column);
+        return rs.wasNull() ? null : value == 1;
+    }
+
+    private static java.time.LocalDate nullableDate(ResultSet rs, String column) throws SQLException {
+        Date value = rs.getDate(column);
+        return value == null ? null : value.toLocalDate();
+    }
+
+    private static <E extends Enum<E>> E enumValue(Class<E> type, String value) {
+        return value == null ? null : Enum.valueOf(type, value);
+    }
+
+    private RelatorioAcademicoRow relatorioRow(
+            Aluno aluno,
+            Curso curso,
+            Disciplina disciplina,
+            Turma turma,
+            Professor professor,
+            MatriculaEmTurma matricula,
+            Prova prova,
+            ResultadoProva resultado
+    ) {
+        return new RelatorioAcademicoRow(
+                aluno != null ? aluno.getId() : null,
+                aluno != null ? aluno.getNome() : null,
+                aluno != null ? aluno.getMatriculaId() : null,
+                aluno != null ? aluno.getEmail() : null,
+                aluno != null ? aluno.getTurno() : null,
+                curso != null ? curso.getId() : null,
+                curso != null ? curso.getNome() : null,
+                curso != null ? curso.getChTotal() : null,
+                disciplina != null ? disciplina.getId() : null,
+                disciplina != null ? disciplina.getCodigo() : null,
+                disciplina != null ? disciplina.getNome() : null,
+                disciplina != null ? disciplina.getCh() : null,
+                disciplina != null ? disciplina.getModalidade() : null,
+                turma != null ? turma.getId() : null,
+                turma != null ? turma.getCodigo() : null,
+                turma != null ? turma.getTurno() : null,
+                turma != null ? turma.getSemestre() : null,
+                turma != null ? turma.getAno() : null,
+                turma != null ? turma.getSala() : null,
+                turma != null ? turma.getHorario() : null,
+                turma != null ? turma.getVagas() : null,
+                professor != null ? professor.getId() : null,
+                professor != null ? professor.getNome() : null,
+                professor != null ? professor.getEmail() : null,
+                professor != null ? professor.getTitulacao() : null,
+                matricula != null ? matricula.getId() : null,
+                matricula != null ? matricula.getDtInscricao() : null,
+                matricula != null ? matricula.getSituacao() : null,
+                matricula != null ? matricula.getFrequencia() : null,
+                matricula != null ? matricula.getMediaFinal() : null,
+                prova != null ? prova.getId() : null,
+                prova != null ? prova.getCodigo() : null,
+                prova != null ? prova.getPeso() : null,
+                prova != null ? prova.getConteudo() : null,
+                resultado != null ? resultado.getId() : null,
+                resultado != null ? resultado.getNota() : null,
+                resultado != null ? resultado.getPresente() : null,
+                resultado != null ? resultado.getDataRealizacao() : null,
+                resultado != null ? resultado.getDuracaoMin() : null
+        );
     }
 
     private Double round2(double v) {

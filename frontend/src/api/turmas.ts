@@ -21,11 +21,13 @@ export interface TurmaPayload {
 
 export async function listarTurmas(
   semestre?: string,
-  ano?: number
+  ano?: number,
+  cursoId?: number
 ): Promise<Turma[]> {
   const params = new URLSearchParams()
   if (semestre) params.set('semestre', semestre)
   if (ano !== undefined) params.set('ano', String(ano))
+  if (cursoId !== undefined) params.set('cursoId', String(cursoId))
   const query = params.toString()
   const { data } = await api.get<ApiResponse<Turma[]>>(
     query ? `/turmas?${query}` : '/turmas'

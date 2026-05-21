@@ -12,8 +12,11 @@ public interface AlunoRepository extends JpaRepository<Aluno, Long> {
 
     List<Aluno> findTop10ByMatriculaId(Integer matriculaId);
 
-    @Query("select coalesce(max(a.matriculaId), 1000000) from Aluno a")
+    @Query("select coalesce(max(a.matriculaId), 99999) from Aluno a where a.matriculaId between 100000 and 999999")
     Integer findMaiorMatriculaId();
+
+    @Query(value = "select seq_aluno_matricula.nextval from dual", nativeQuery = true)
+    Integer nextMatriculaId();
 
     boolean existsByCursoId(Long cursoId);
 

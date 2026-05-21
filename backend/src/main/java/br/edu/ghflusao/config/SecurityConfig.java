@@ -6,10 +6,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -35,18 +37,24 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .headers(headers -> headers
+                        .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'"))
+                        .frameOptions(HeadersConfigurer.FrameOptionsConfig::deny)
+                        .contentTypeOptions(Customizer.withDefaults())
+                )
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/login").permitAll()
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/actuator/health").permitAll()
-                        .requestMatchers("/alunos/**").hasAnyRole("SECRETARIA", "ALUNO", "COORDENADOR")
-                        .requestMatchers(HttpMethod.GET, "/turmas/**").hasAnyRole("ALUNO", "PROFESSOR", "COORDENADOR", "SECRETARIA")
-                        .requestMatchers(HttpMethod.POST, "/disciplinas/*/turmas").hasRole("COORDENADOR")
-                        .requestMatchers(HttpMethod.GET, "/disciplinas/**").hasAnyRole("ALUNO", "PROFESSOR", "COORDENADOR", "SECRETARIA", "DIRETOR")
-                        .requestMatchers(HttpMethod.GET, "/professores/**").hasAnyRole("COORDENADOR", "DIRETOR", "SECRETARIA")
-                        .requestMatchers("/cursos/**").hasAnyRole("DIRETOR", "COORDENADOR", "SECRETARIA", "PROFESSOR", "ALUNO")
-                        .requestMatchers("/provas/**").hasAnyRole("PROFESSOR", "COORDENADOR")
-                        .requestMatchers("/resultados/**").hasRole("PROFESSOR")
+                        .requestMatchers("/alunos/**").hasAnyRole("SECRETARIA", "ALUNO", "COORDENADOR", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/turmas/**").hasAnyRole("ALUNO", "PROFESSOR", "COORDENADOR", "SECRETARIA", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/disciplinas/*/turmas").hasAnyRole("COORDENADOR", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/disciplinas/**").hasAnyRole("ALUNO", "PROFESSOR", "COORDENADOR", "SECRETARIA", "DIRETOR", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/professores/**").hasAnyRole("COORDENADOR", "DIRETOR", "SECRETARIA", "ADMIN")
+                        .requestMatchers("/cursos/**").hasAnyRole("DIRETOR", "COORDENADOR", "SECRETARIA", "PROFESSOR", "ALUNO", "ADMIN")
+                        .requestMatchers("/provas/**").hasAnyRole("PROFESSOR", "COORDENADOR", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/resultados/**").hasAnyRole("PROFESSOR", "COORDENADOR", "DIRETOR", "ADMIN")
+                        .requestMatchers("/resultados/**").hasAnyRole("PROFESSOR", "ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

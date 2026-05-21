@@ -2,6 +2,7 @@ package br.edu.ghflusao.controller;
 
 import br.edu.ghflusao.dto.request.DisciplinaRequestDTO;
 import br.edu.ghflusao.dto.response.ApiResponse;
+import br.edu.ghflusao.dto.response.DisciplinaResponseDTO;
 import br.edu.ghflusao.service.DisciplinaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,31 +27,35 @@ public class DisciplinaController {
     private final DisciplinaService disciplinaService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ALUNO','PROFESSOR','COORDENADOR','SECRETARIA','DIRETOR')")
+    @PreAuthorize("hasAnyRole('ALUNO','PROFESSOR','COORDENADOR','SECRETARIA','DIRETOR','ADMIN')")
     public ResponseEntity<ApiResponse<?>> listar(@RequestParam(required = false) Long cursoId) {
         if (cursoId != null) {
-            return ResponseEntity.ok(ApiResponse.ok(disciplinaService.listarPorCurso(cursoId)));
+            return ResponseEntity.ok(ApiResponse.ok(disciplinaService.listarPorCurso(cursoId).stream()
+                    .map(DisciplinaResponseDTO::from)
+                    .toList()));
         }
-        return ResponseEntity.ok(ApiResponse.ok(disciplinaService.listar()));
+        return ResponseEntity.ok(ApiResponse.ok(disciplinaService.listar().stream()
+                .map(DisciplinaResponseDTO::from)
+                .toList()));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('COORDENADOR','ADMIN')")
     public ResponseEntity<ApiResponse<?>> buscar(@PathVariable Long id) {
-        return ResponseEntity.ok(ApiResponse.ok(disciplinaService.buscarPorId(id)));
+        return ResponseEntity.ok(ApiResponse.ok(DisciplinaResponseDTO.from(disciplinaService.buscarPorId(id))));
     }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('COORDENADOR','ADMIN')")
     public ResponseEntity<ApiResponse<?>> criar(@Valid @RequestBody DisciplinaRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(disciplinaService.criar(dto), "Disciplina criada com sucesso."));
+                .body(ApiResponse.ok(DisciplinaResponseDTO.from(disciplinaService.criar(dto)), "Disciplina criada com sucesso."));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('COORDENADOR','ADMIN')")
     public ResponseEntity<ApiResponse<?>> atualizar(@PathVariable Long id, @Valid @RequestBody DisciplinaRequestDTO dto) {
-        return ResponseEntity.ok(ApiResponse.ok(disciplinaService.atualizar(id, dto), "Disciplina atualizada."));
+        return ResponseEntity.ok(ApiResponse.ok(DisciplinaResponseDTO.from(disciplinaService.atualizar(id, dto)), "Disciplina atualizada."));
     }
 
     @DeleteMapping("/{id}")

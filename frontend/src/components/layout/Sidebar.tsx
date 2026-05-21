@@ -16,6 +16,7 @@ type IconKey =
   | 'notas'
   | 'disciplinas'
   | 'turmas'
+  | 'provas'
   | 'alunos'
   | 'cursos'
   | 'professores'
@@ -46,10 +47,11 @@ const MENU_BY_PERFIL: Record<Perfil, MenuItem[]> = {
   ],
   ADMIN: [
     { to: '/admin/dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { to: '/admin/explorar', label: 'Explorar', icon: 'explorar' },
+    { to: '/admin/explorar', label: 'Consulta Avancada', icon: 'explorar' },
     { to: '/admin/cursos', label: 'Cursos', icon: 'cursos' },
-    { to: '/admin/disciplinas', label: 'Disciplinas', icon: 'disciplinas' },
     { to: '/admin/turmas', label: 'Turmas', icon: 'turmas' },
+    { to: '/admin/matriculas', label: 'Matriculas', icon: 'matriculas' },
+    { to: '/admin/provas', label: 'Provas', icon: 'provas' },
     { to: '/admin/professores', label: 'Professores', icon: 'professores' },
     { to: '/admin/alunos', label: 'Alunos', icon: 'alunos' }
   ]
@@ -101,6 +103,14 @@ function MenuIcon({ icon }: { icon: IconKey }) {
           <circle cx="8" cy="9" r="3" />
           <circle cx="16" cy="9" r="3" />
           <path d="M3 19c1.5-2.5 3.5-4 5-4s3.5 1.5 5 4M11 19c1.5-2.5 3.5-4 5-4s3.5 1.5 5 4" />
+        </svg>
+      )
+    case 'provas':
+      return (
+        <svg viewBox="0 0 24 24" className={base} aria-hidden>
+          <path d="M6 4h12v16H6z" />
+          <path d="M9 8h6M9 12h6M9 16h3" />
+          <path d="m15 16 1.5 1.5L20 14" />
         </svg>
       )
     case 'alunos':

@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -27,7 +28,9 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
+import { Pagination } from '../../components/ui/Pagination'
 import { Spinner } from '../../components/ui/Spinner'
+import { AdminDisciplinas } from './AdminDisciplinas'
 
 const schema = z.object({
   nome: z.string().min(3, 'Mínimo 3 caracteres'),
@@ -40,11 +43,16 @@ type FormData = z.input<typeof schema>
 
 const SELECT_CLS =
   'w-full h-10 rounded-lg border border-surface-border bg-white px-3 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20'
+const PAGE_SIZE = 10
 
 export function AdminCursos() {
   const qc = useQueryClient()
+  const [searchParams] = useSearchParams()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<CursoFull | null>(null)
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [disciplinasCurso, setDisciplinasCurso] = useState<CursoFull | null>(null)
   const [openCoord, setOpenCoord] = useState<number | null>(null)
   const [profSelecionado, setProfSelecionado] = useState<number | ''>('')
   const [alert, setAlert] = useState<{
@@ -57,6 +65,32 @@ export function AdminCursos() {
     queryKey: ['professores'],
     queryFn: listarProfessores
   })
+  const filtroCurso = searchParams.get('curso')?.toLowerCase() ?? ''
+
+  const filteredCursos = useMemo(() => {
+    const list = cursos.data ?? []
+    const term = search.trim().toLowerCase()
+    return list.filter(c => {
+      const matchDashboard = filtroCurso
+        ? c.nome.toLowerCase().includes(filtroCurso)
+        : true
+      const matchSearch = !term
+        ? true
+        : [c.nome, String(c.chTotal), String(c.prevTerminoAnos), String(c.limiteConclusao), c.coordenador?.nome]
+            .filter(Boolean)
+            .some(value => String(value).toLowerCase().includes(term))
+      return matchDashboard && matchSearch
+    })
+  }, [cursos.data, filtroCurso, search])
+
+  const currentPage = Math.min(
+    page,
+    Math.max(1, Math.ceil(filteredCursos.length / PAGE_SIZE))
+  )
+  const pagedCursos = filteredCursos.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  )
 
   const form = useForm<FormData>({ resolver: zodResolver(schema) })
 
@@ -172,6 +206,43 @@ export function AdminCursos() {
         </div>
       )}
 
+      {filtroCurso && (
+        <Card className="mb-4">
+          <p className="text-sm text-text">
+            Filtro da dashboard:{' '}
+            <span className="font-semibold">curso {searchParams.get('curso')}</span>
+          </p>
+        </Card>
+      )}
+
+      <Card className="mb-4" noPadding>
+        <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-[1fr_auto] md:items-end">
+          <div>
+            <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
+              Pesquisar cursos
+            </label>
+            <Input
+              placeholder="Nome, carga horaria, prazo ou coordenador..."
+              value={search}
+              onChange={e => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
+            />
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              setSearch('')
+              setPage(1)
+            }}
+          >
+            Limpar
+          </Button>
+        </div>
+      </Card>
+
       {cursos.isLoading ? (
         <div className="flex items-center justify-center gap-2 text-text-muted py-10">
           <Spinner /> Carregando cursos...
@@ -181,6 +252,7 @@ export function AdminCursos() {
           <p className="text-primary-dark text-sm">Erro ao carregar cursos.</p>
         </Card>
       ) : (
+        <>
         <Table>
           <THead>
             <TR>
@@ -193,10 +265,10 @@ export function AdminCursos() {
             </TR>
           </THead>
           <TBody>
-            {(!cursos.data || cursos.data.length === 0) && (
-              <EmptyRow colSpan={6}>Nenhum curso cadastrado.</EmptyRow>
+            {filteredCursos.length === 0 && (
+              <EmptyRow colSpan={6}>Nenhum curso encontrado.</EmptyRow>
             )}
-            {cursos.data?.map(c => (
+            {pagedCursos.map(c => (
               <TR key={c.id}>
                 <TD>{c.nome}</TD>
                 <TD>{c.chTotal}h</TD>
@@ -220,6 +292,13 @@ export function AdminCursos() {
                       Coordenador
                     </Button>
                     <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setDisciplinasCurso(c)}
+                    >
+                      Disciplinas
+                    </Button>
+                    <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDelete(c)}
@@ -233,6 +312,13 @@ export function AdminCursos() {
             ))}
           </TBody>
         </Table>
+        <Pagination
+          page={currentPage}
+          pageSize={PAGE_SIZE}
+          total={filteredCursos.length}
+          onPageChange={setPage}
+        />
+        </>
       )}
 
       <Modal
@@ -337,6 +423,21 @@ export function AdminCursos() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={disciplinasCurso !== null}
+        onClose={() => setDisciplinasCurso(null)}
+        size="lg"
+        title={
+          disciplinasCurso
+            ? `Disciplinas de ${disciplinasCurso.nome}`
+            : 'Disciplinas do curso'
+        }
+      >
+        {disciplinasCurso && (
+          <AdminDisciplinas embedded cursoIdFixo={disciplinasCurso.id} />
+        )}
       </Modal>
     </>
   )
