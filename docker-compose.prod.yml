@@ -19,6 +19,12 @@ services:
       timeout: 10s
       start_period: 120s
       retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    stop_grace_period: 2m
 
   backend:
     build:
@@ -29,7 +35,7 @@ services:
     environment:
       ORACLE_JDBC_URL: ${ORACLE_JDBC_URL}
       ORACLE_USER: ${ORACLE_USER}
-      ORACLE_PASSWORD: ${APP_USER_PASSWORD}
+      ORACLE_APP_PASSWORD: ${APP_USER_PASSWORD}
       ORACLE_SCHEMA: ${ORACLE_SCHEMA}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
@@ -46,17 +52,23 @@ services:
     networks:
       - ghflusao-net
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/actuator/health/readiness || exit 1"]
       interval: 30s
       timeout: 10s
       start_period: 60s
       retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    stop_grace_period: 45s
 
   frontend:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: /api
+        VITE_API_URL: ${VITE_API_URL:-/api}
     image: ghflusao-frontend:prod
     container_name: ghflusao-frontend
     restart: unless-stopped
@@ -72,6 +84,11 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 networks:
   ghflusao-net:

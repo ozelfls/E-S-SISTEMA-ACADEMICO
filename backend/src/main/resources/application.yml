@@ -5,7 +5,7 @@ spring:
   datasource:
     url: ${ORACLE_JDBC_URL}
     username: ${ORACLE_USER}
-    password: ${ORACLE_PASSWORD}
+    password: ${ORACLE_APP_PASSWORD:${ORACLE_PASSWORD}}
     driver-class-name: oracle.jdbc.OracleDriver
     hikari:
       maximum-pool-size: ${DB_POOL_MAX:5}
@@ -34,6 +34,7 @@ spring:
 
 server:
   port: ${PORT:8080}
+  forward-headers-strategy: framework
   servlet:
     context-path: /api
   compression:
@@ -65,12 +66,20 @@ management:
   endpoint:
     health:
       show-details: never
+      probes:
+        enabled: true
+  health:
+    db:
+      enabled: true
 
 ---
 spring:
   config:
     activate:
       on-profile: prod
+  flyway:
+    baseline-on-migrate: false
+    ignore-migration-patterns: []
 
 springdoc:
   swagger-ui:

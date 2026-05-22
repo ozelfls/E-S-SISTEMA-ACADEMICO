@@ -1,7 +1,13 @@
+import { useMemo, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useUiStore } from '../../store/uiStore'
 import type { Perfil } from '../../types'
+
+const DEFAULT_SPOTIFY_LINK =
+  'https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M'
+const SPOTIFY_LINK_STORAGE = 'ghflusao-spotify-link'
+const SPOTIFY_OPEN_STORAGE = 'ghflusao-spotify-open'
 
 interface MenuItem {
   to: string
@@ -55,6 +61,35 @@ const MENU_BY_PERFIL: Record<Perfil, MenuItem[]> = {
     { to: '/admin/professores', label: 'Professores', icon: 'professores' },
     { to: '/admin/alunos', label: 'Alunos', icon: 'alunos' }
   ]
+}
+
+function storedValue(key: string, fallback: string) {
+  try {
+    return localStorage.getItem(key) ?? fallback
+  } catch {
+    return fallback
+  }
+}
+
+function spotifyEmbedUrl(value: string) {
+  const raw = value.trim() || DEFAULT_SPOTIFY_LINK
+  const uriMatch = raw.match(/^spotify:(album|artist|episode|playlist|show|track):([^?]+)$/i)
+  if (uriMatch) {
+    return `https://open.spotify.com/embed/${uriMatch[1].toLowerCase()}/${uriMatch[2]}?utm_source=generator&theme=0`
+  }
+
+  try {
+    const url = new URL(raw)
+    if (!url.hostname.includes('spotify.com')) return spotifyEmbedUrl(DEFAULT_SPOTIFY_LINK)
+    const parts = url.pathname.split('/').filter(Boolean)
+    const embedIndex = parts[0] === 'embed' ? 1 : 0
+    const type = parts[embedIndex]
+    const id = parts[embedIndex + 1]
+    if (!type || !id) return spotifyEmbedUrl(DEFAULT_SPOTIFY_LINK)
+    return `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0`
+  } catch {
+    return spotifyEmbedUrl(DEFAULT_SPOTIFY_LINK)
+  }
 }
 
 function MenuIcon({ icon }: { icon: IconKey }) {
@@ -144,6 +179,133 @@ function MenuIcon({ icon }: { icon: IconKey }) {
   }
 }
 
+function SpotifySidebarPlayer() {
+  const [open, setOpen] = useState(
+    () => storedValue(SPOTIFY_OPEN_STORAGE, 'false') === 'true'
+  )
+  const [editing, setEditing] = useState(false)
+  const [link, setLink] = useState(() =>
+    storedValue(SPOTIFY_LINK_STORAGE, DEFAULT_SPOTIFY_LINK)
+  )
+  const [draft, setDraft] = useState(link)
+  const embedUrl = useMemo(() => spotifyEmbedUrl(link), [link])
+
+  const toggleOpen = () => {
+    const next = !open
+    setOpen(next)
+    localStorage.setItem(SPOTIFY_OPEN_STORAGE, String(next))
+  }
+
+  const applyLink = () => {
+    const next = draft.trim() || DEFAULT_SPOTIFY_LINK
+    setLink(next)
+    setDraft(next)
+    localStorage.setItem(SPOTIFY_LINK_STORAGE, next)
+  }
+
+  return (
+    <section className="spotify-sidebar-panel">
+      <div className="flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={toggleOpen}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+        >
+          <span className="spotify-sidebar-logo" aria-hidden>
+            <svg viewBox="0 0 24 24" className="spotify-sidebar-mark">
+              <circle cx="12" cy="12" r="12" />
+              <path d="M17.52 17.34c-0.24 0.36-0.66 0.48-1.02 0.24-2.82-1.74-6.36-2.1-10.56-1.14-0.42 0.12-0.78-0.18-0.9-0.54-0.12-0.42 0.18-0.78 0.54-0.9 4.56-1.02 8.52-0.6 11.64 1.32 0.42 0.18 0.48 0.66 0.3 1.02z" />
+              <path d="M18.96 14.04c-0.3 0.42-0.84 0.6-1.26 0.3-3.24-1.98-8.16-2.58-11.94-1.38-0.48 0.12-1.02-0.12-1.14-0.6-0.12-0.48 0.12-1.02 0.6-1.14 4.38-1.32 9.78-0.66 13.5 1.62 0.36 0.18 0.54 0.78 0.24 1.2z" />
+              <path d="M19.08 10.68c-3.84-2.28-10.26-2.52-13.92-1.38-0.6 0.18-1.2-0.18-1.38-0.72-0.18-0.6 0.18-1.2 0.72-1.38 4.26-1.26 11.28-1.02 15.72 1.62 0.54 0.3 0.72 1.02 0.42 1.56-0.3 0.42-1.02 0.6-1.56 0.3z" />
+            </svg>
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-xs font-bold uppercase tracking-wide text-text">
+              Spotify
+            </span>
+            <span className="block truncate text-xs text-text-muted">
+              player integrado
+            </span>
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={toggleOpen}
+          aria-label={open ? 'Recolher Spotify' : 'Abrir Spotify'}
+          className="grid h-7 w-7 place-items-center rounded-full border border-surface-border bg-white text-xs font-bold text-text-muted hover:border-primary hover:text-primary"
+        >
+          {open ? 'x' : '>'}
+        </button>
+      </div>
+
+      {!open && (
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <span className="truncate text-xs font-medium text-text-muted">
+            Playlist pronta para tocar
+          </span>
+          <button
+            type="button"
+            onClick={toggleOpen}
+            className="spotify-sidebar-play"
+          >
+            Abrir
+          </button>
+        </div>
+      )}
+
+      {open && (
+        <div className="mt-3 space-y-3">
+          <iframe
+            title="Spotify player"
+            src={embedUrl}
+            className="spotify-sidebar-frame"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"
+          />
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+              Link ativo
+            </span>
+            <button
+              type="button"
+              onClick={() => setEditing(current => !current)}
+              className="text-xs font-bold text-primary hover:text-primary-dark"
+            >
+              {editing ? 'fechar' : 'trocar'}
+            </button>
+          </div>
+          {editing && (
+            <div className="grid grid-cols-[1fr_auto] gap-2">
+              <input
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    applyLink()
+                    setEditing(false)
+                  }
+                }}
+                className="h-8 min-w-0 rounded-lg border border-surface-border bg-white px-2 text-xs text-text placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                placeholder="Cole um link do Spotify"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  applyLink()
+                  setEditing(false)
+                }}
+                className="h-8 rounded-lg bg-primary px-2 text-xs font-bold text-white hover:bg-primary-dark"
+              >
+                OK
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
 export function Sidebar() {
   const perfil = useAuthStore(s => s.perfil)
   const { sidebarOpen, closeSidebar } = useUiStore()
@@ -193,7 +355,7 @@ export function Sidebar() {
                       isActive ? 'bg-primary' : 'bg-transparent group-hover:bg-surface-border'
                     ].join(' ')}
                   />
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-surface-border bg-white text-black">
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-surface-border bg-white text-current">
                     <MenuIcon icon={item.icon} />
                   </span>
                   <span>{item.label}</span>
@@ -202,6 +364,9 @@ export function Sidebar() {
             </NavLink>
           ))}
         </nav>
+        <div className="border-t border-surface-border p-3">
+          <SpotifySidebarPlayer />
+        </div>
         <div className="px-5 py-3 border-t border-surface-border text-text-muted text-xs">
           v1.0 &middot; GHFlusão
         </div>

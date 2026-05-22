@@ -8,6 +8,7 @@ import { Badge, type BadgeVariant } from '../../components/ui/Badge'
 import { StatCard } from '../../components/ui/StatCard'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
+import { Modal } from '../../components/ui/Modal'
 import { AlocarProfessorModal } from '../../components/admin/AlocarProfessorModal'
 import { AdvancedReportBuilder } from './AdvancedReportBuilder'
 import { MasterDetailsExplorer } from './MasterDetailsExplorer'
@@ -28,13 +29,16 @@ import {
   buscarGlobal,
   detalhesDaTurma,
   historicoDaDisciplina,
+  relatorioAcademico,
   resumoSemestre,
   trajetoriaDoAluno,
-  turmasDoProfessor
+  turmasDoProfessor,
+  type RelatorioAcademicoRow
 } from '../../api/consultas'
 
 type TabKey =
   | 'masterdetails'
+  | 'prontas'
   | 'relatorio'
   | 'professor'
   | 'aluno'
@@ -62,6 +66,11 @@ const TABS: Array<{
     key: 'masterdetails',
     label: 'Master details',
     hint: 'Treeview hierarquico de curso, disciplina e turma com detalhes vinculados.'
+  },
+  {
+    key: 'prontas',
+    label: 'Consultas prontas',
+    hint: 'Presets de consulta com os cruzamentos mais pedidos.'
   },
   {
     key: 'relatorio',
@@ -208,6 +217,8 @@ export function AdminExplorar() {
 
       {tab === 'masterdetails' ? (
         <MasterDetailsExplorer />
+      ) : tab === 'prontas' ? (
+        <ConsultasProntas />
       ) : tab === 'relatorio' ? (
         <AdvancedReportBuilder />
       ) : (
@@ -271,6 +282,1016 @@ export function AdminExplorar() {
       </Card>
       )}
     </>
+  )
+}
+
+type ReadyQueryKey =
+  | 'aluno_turmas'
+  | 'professor_disciplina'
+  | 'alunos_sem_turma'
+  | 'turma_prova_media'
+  | 'professor_prova_notas'
+  | 'professor_total_turmas'
+  | 'professor_disciplinas'
+  | 'disciplinas_sem_turma'
+  | 'provas_nao_aplicadas'
+  | 'disciplina_total_turmas'
+
+interface ReadyColumn {
+  key: string
+  label: string
+}
+
+interface ReadyQuery {
+  key: ReadyQueryKey
+  title: string
+  subtitle: string
+  columns: ReadyColumn[]
+}
+
+type ReadyRow = Record<string, string | number>
+type ReadyView = 'table' | 'bar' | 'kpi'
+type ReadyQueryModalMode = 'view' | 'edit'
+
+const READY_CAROUSEL_SIZE = 5
+const READY_PAGE_SIZE_OPTIONS = [10, 25, 50]
+const READY_QUERY_STORAGE_KEY = 'ghflusao-ready-query-texts'
+
+const READY_QUERIES: ReadyQuery[] = [
+  {
+    key: 'aluno_turmas',
+    title: 'Alunos matriculados em turmas',
+    subtitle: 'Matricula, aluno, codigo, turno e horario da turma.',
+    columns: [
+      { key: 'matricula', label: 'Matricula' },
+      { key: 'aluno', label: 'Aluno' },
+      { key: 'turma', label: 'Cod. turma' },
+      { key: 'turno', label: 'Turno' },
+      { key: 'dia', label: 'Dia' },
+      { key: 'inicio', label: 'Hora inicio' },
+      { key: 'fim', label: 'Hora fim' }
+    ]
+  },
+  {
+    key: 'professor_disciplina',
+    title: 'Professores e disciplinas',
+    subtitle: 'Matricula/registro do professor, nome e disciplina vinculada.',
+    columns: [
+      { key: 'registro', label: 'Matricula prof.' },
+      { key: 'professor', label: 'Professor' },
+      { key: 'codigo', label: 'Cod. disciplina' },
+      { key: 'disciplina', label: 'Disciplina' }
+    ]
+  },
+  {
+    key: 'alunos_sem_turma',
+    title: 'Alunos sem turma',
+    subtitle: 'Alunos cadastrados que nao aparecem em nenhuma turma.',
+    columns: [
+      { key: 'matricula', label: 'Matricula' },
+      { key: 'aluno', label: 'Aluno' }
+    ]
+  },
+  {
+    key: 'turma_prova_media',
+    title: 'Turmas, provas e media',
+    subtitle: 'Turma, disciplina, prova, situacao e media das notas.',
+    columns: [
+      { key: 'turmaId', label: 'ID turma' },
+      { key: 'disciplina', label: 'Disciplina' },
+      { key: 'prova', label: 'Cod. prova' },
+      { key: 'situacao', label: 'Situacao' },
+      { key: 'media', label: 'Media notas' }
+    ]
+  },
+  {
+    key: 'professor_prova_notas',
+    title: 'Notas por professor e prova',
+    subtitle: 'Professor, turma, disciplina, prova, media, maior e menor nota.',
+    columns: [
+      { key: 'registro', label: 'Matricula prof.' },
+      { key: 'professor', label: 'Professor' },
+      { key: 'turmaId', label: 'ID turma' },
+      { key: 'disciplina', label: 'Disciplina' },
+      { key: 'prova', label: 'Cod. prova' },
+      { key: 'situacao', label: 'Situacao' },
+      { key: 'media', label: 'Media' },
+      { key: 'maior', label: 'Maior nota' },
+      { key: 'menor', label: 'Menor nota' }
+    ]
+  },
+  {
+    key: 'professor_total_turmas',
+    title: 'Quantidade de turmas por professor',
+    subtitle: 'Total de turmas que cada professor ministra.',
+    columns: [
+      { key: 'professor', label: 'Professor' },
+      { key: 'total', label: 'Qtd. turmas' }
+    ]
+  },
+  {
+    key: 'professor_disciplinas',
+    title: 'Disciplinas por professor',
+    subtitle: 'Nome de cada professor e disciplinas ministradas.',
+    columns: [
+      { key: 'professor', label: 'Professor' },
+      { key: 'disciplinas', label: 'Disciplinas' }
+    ]
+  },
+  {
+    key: 'disciplinas_sem_turma',
+    title: 'Disciplinas sem turmas',
+    subtitle: 'Disciplinas cadastradas sem nenhuma turma aberta.',
+    columns: [
+      { key: 'codigo', label: 'Cod. disciplina' },
+      { key: 'disciplina', label: 'Disciplina' }
+    ]
+  },
+  {
+    key: 'provas_nao_aplicadas',
+    title: 'Provas nao aplicadas',
+    subtitle: 'Provas vinculadas a disciplinas ainda sem aplicacao registrada.',
+    columns: [
+      { key: 'prova', label: 'Cod. prova' },
+      { key: 'disciplina', label: 'Disciplina' },
+      { key: 'situacao', label: 'Situacao' }
+    ]
+  },
+  {
+    key: 'disciplina_total_turmas',
+    title: 'Quantidade de turmas por disciplina',
+    subtitle: 'Nome da disciplina e total de turmas vinculadas.',
+    columns: [
+      { key: 'disciplina', label: 'Disciplina' },
+      { key: 'total', label: 'Qtd. turmas' }
+    ]
+  }
+]
+
+const DEFAULT_READY_QUERY_TEXTS: Record<ReadyQueryKey, string> = {
+  aluno_turmas: `SELECT
+  a.matricula_id AS matricula,
+  a.nome AS aluno,
+  t.codigo AS codigo_turma,
+  t.turno,
+  t.horario
+FROM alunos a
+JOIN matriculas_em_turma m ON m.aluno_id = a.id
+JOIN turmas t ON t.id = m.turma_id
+ORDER BY a.nome, t.codigo;`,
+  professor_disciplina: `SELECT DISTINCT
+  p.registro AS matricula_professor,
+  p.nome AS professor,
+  d.codigo AS codigo_disciplina,
+  d.nome AS disciplina
+FROM professores p
+JOIN turmas t ON t.professor_id = p.id
+JOIN disciplinas d ON d.id = t.disciplina_id
+ORDER BY p.nome, d.nome;`,
+  alunos_sem_turma: `SELECT
+  a.matricula_id AS matricula,
+  a.nome AS aluno
+FROM alunos a
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM matriculas_em_turma m
+  WHERE m.aluno_id = a.id
+)
+ORDER BY a.nome;`,
+  turma_prova_media: `SELECT
+  t.id AS turma_id,
+  d.nome AS disciplina,
+  p.codigo AS codigo_prova,
+  CASE WHEN COUNT(r.data_realizacao) > 0 OR COUNT(r.nota) > 0
+       THEN 'Aplicada'
+       ELSE 'Nao aplicada'
+  END AS situacao_prova,
+  ROUND(AVG(r.nota), 2) AS media_notas
+FROM turmas t
+JOIN disciplinas d ON d.id = t.disciplina_id
+JOIN provas p ON p.turma_id = t.id
+LEFT JOIN resultados_prova r ON r.prova_id = p.id
+GROUP BY t.id, d.nome, p.codigo
+ORDER BY t.id, p.codigo;`,
+  professor_prova_notas: `SELECT
+  prof.registro AS matricula_professor,
+  prof.nome AS professor,
+  t.id AS turma_id,
+  d.nome AS disciplina,
+  p.codigo AS codigo_prova,
+  CASE WHEN COUNT(r.data_realizacao) > 0 OR COUNT(r.nota) > 0
+       THEN 'Aplicada'
+       ELSE 'Nao aplicada'
+  END AS situacao_prova,
+  ROUND(AVG(r.nota), 2) AS media_notas,
+  MAX(r.nota) AS maior_nota,
+  MIN(r.nota) AS menor_nota
+FROM professores prof
+JOIN turmas t ON t.professor_id = prof.id
+JOIN disciplinas d ON d.id = t.disciplina_id
+JOIN provas p ON p.turma_id = t.id
+LEFT JOIN resultados_prova r ON r.prova_id = p.id
+GROUP BY prof.registro, prof.nome, t.id, d.nome, p.codigo
+ORDER BY prof.nome, t.id, p.codigo;`,
+  professor_total_turmas: `SELECT
+  p.nome AS professor,
+  COUNT(t.id) AS quantidade_turmas
+FROM professores p
+LEFT JOIN turmas t ON t.professor_id = p.id
+GROUP BY p.nome
+ORDER BY quantidade_turmas DESC, p.nome;`,
+  professor_disciplinas: `SELECT
+  p.nome AS professor,
+  LISTAGG(DISTINCT d.nome, ', ') WITHIN GROUP (ORDER BY d.nome) AS disciplinas
+FROM professores p
+JOIN turmas t ON t.professor_id = p.id
+JOIN disciplinas d ON d.id = t.disciplina_id
+GROUP BY p.nome
+ORDER BY p.nome;`,
+  disciplinas_sem_turma: `SELECT
+  d.codigo AS codigo_disciplina,
+  d.nome AS disciplina
+FROM disciplinas d
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM turmas t
+  WHERE t.disciplina_id = d.id
+)
+ORDER BY d.nome;`,
+  provas_nao_aplicadas: `SELECT
+  p.codigo AS codigo_prova,
+  d.nome AS disciplina,
+  'Nao aplicada' AS situacao
+FROM provas p
+JOIN turmas t ON t.id = p.turma_id
+JOIN disciplinas d ON d.id = t.disciplina_id
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM resultados_prova r
+  WHERE r.prova_id = p.id
+    AND (r.data_realizacao IS NOT NULL OR r.nota IS NOT NULL)
+)
+ORDER BY d.nome, p.codigo;`,
+  disciplina_total_turmas: `SELECT
+  d.nome AS disciplina,
+  COUNT(t.id) AS quantidade_turmas
+FROM disciplinas d
+LEFT JOIN turmas t ON t.disciplina_id = d.id
+GROUP BY d.nome
+ORDER BY quantidade_turmas DESC, d.nome;`
+}
+
+function loadReadyQueryTexts() {
+  try {
+    return {
+      ...DEFAULT_READY_QUERY_TEXTS,
+      ...(JSON.parse(
+        localStorage.getItem(READY_QUERY_STORAGE_KEY) ?? '{}'
+      ) as Partial<Record<ReadyQueryKey, string>>)
+    }
+  } catch {
+    return DEFAULT_READY_QUERY_TEXTS
+  }
+}
+
+const readyValue = (value: string | number | null | undefined) =>
+  value === null || value === undefined || value === '' ? '-' : value
+
+const fmtReadyNumber = (value: number | null | undefined) =>
+  value === null || value === undefined || !Number.isFinite(value)
+    ? '-'
+    : value.toFixed(2)
+
+const avgReady = (values: number[]) =>
+  values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null
+
+const uniqueBy = <T,>(items: T[], getKey: (item: T) => string) => {
+  const seen = new Set<string>()
+  return items.filter(item => {
+    const key = getKey(item)
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+const parseTurmaHorario = (horario: string | null | undefined) => {
+  const raw = horario?.trim() ?? ''
+  const times = raw.match(/\d{1,2}:\d{2}/g) ?? []
+  const day = raw
+    .split(/\d{1,2}:\d{2}/)[0]
+    ?.replace(/[-–|]/g, ' ')
+    .trim()
+  return {
+    dia: day || raw || '-',
+    inicio: times[0] ?? '-',
+    fim: times[1] ?? '-'
+  }
+}
+
+const groupRelatorioByProva = (rows: RelatorioAcademicoRow[]) => {
+  const groups = new Map<number, RelatorioAcademicoRow[]>()
+  rows.forEach(row => {
+    if (row.provaId == null) return
+    groups.set(row.provaId, [...(groups.get(row.provaId) ?? []), row])
+  })
+  return Array.from(groups.values())
+}
+
+const provaSituacao = (rows: RelatorioAcademicoRow[]) =>
+  rows.some(row => row.resultadoDataRealizacao || row.resultadoNota != null)
+    ? 'Aplicada'
+    : 'Nao aplicada'
+
+function buildReadyRows(
+  key: ReadyQueryKey,
+  rows: RelatorioAcademicoRow[],
+  alunos: Awaited<ReturnType<typeof listarAlunos>>,
+  professores: Awaited<ReturnType<typeof listarProfessores>>,
+  disciplinas: Awaited<ReturnType<typeof listarDisciplinas>>,
+  turmas: Awaited<ReturnType<typeof listarTurmas>>
+): ReadyRow[] {
+  const professorRegistro = new Map(professores.map(p => [p.id, p.registro]))
+
+  if (key === 'aluno_turmas') {
+    return uniqueBy(
+      rows
+        .filter(row => row.alunoMatricula && row.alunoNome && row.turmaCodigo)
+        .map(row => {
+          const horario = parseTurmaHorario(row.turmaHorario)
+          return {
+            matricula: readyValue(row.alunoMatricula),
+            aluno: readyValue(row.alunoNome),
+            turma: readyValue(row.turmaCodigo),
+            turno: readyValue(row.turmaTurno),
+            dia: horario.dia,
+            inicio: horario.inicio,
+            fim: horario.fim
+          }
+        }),
+      row => `${row.matricula}-${row.turma}`
+    )
+  }
+
+  if (key === 'professor_disciplina') {
+    return uniqueBy(
+      turmas
+        .filter(turma => turma.professor && turma.disciplina)
+        .map(turma => ({
+          registro: readyValue(turma.professor?.registro ?? turma.professor?.id),
+          professor: readyValue(turma.professor?.nome),
+          codigo: readyValue(turma.disciplina?.codigo),
+          disciplina: readyValue(turma.disciplina?.nome)
+        })),
+      row => `${row.registro}-${row.codigo}`
+    )
+  }
+
+  if (key === 'alunos_sem_turma') {
+    const alunosComTurma = new Set(
+      rows
+        .filter(row => row.alunoId != null && row.turmaId != null)
+        .map(row => row.alunoId)
+    )
+    return alunos
+      .filter(aluno => !alunosComTurma.has(aluno.id))
+      .map(aluno => ({ matricula: aluno.matriculaId, aluno: aluno.nome }))
+  }
+
+  if (key === 'turma_prova_media') {
+    return groupRelatorioByProva(rows).map(group => {
+      const first = group[0]
+      const notas = group
+        .map(row => row.resultadoNota)
+        .filter((nota): nota is number => typeof nota === 'number')
+      return {
+        turmaId: readyValue(first.turmaId),
+        disciplina: readyValue(first.disciplinaNome),
+        prova: readyValue(first.provaCodigo),
+        situacao: provaSituacao(group),
+        media: fmtReadyNumber(avgReady(notas))
+      }
+    })
+  }
+
+  if (key === 'professor_prova_notas') {
+    return groupRelatorioByProva(rows).map(group => {
+      const first = group[0]
+      const notas = group
+        .map(row => row.resultadoNota)
+        .filter((nota): nota is number => typeof nota === 'number')
+      return {
+        registro: readyValue(
+          first.professorId != null
+            ? professorRegistro.get(first.professorId)
+            : undefined
+        ),
+        professor: readyValue(first.professorNome),
+        turmaId: readyValue(first.turmaId),
+        disciplina: readyValue(first.disciplinaNome),
+        prova: readyValue(first.provaCodigo),
+        situacao: provaSituacao(group),
+        media: fmtReadyNumber(avgReady(notas)),
+        maior: fmtReadyNumber(notas.length ? Math.max(...notas) : null),
+        menor: fmtReadyNumber(notas.length ? Math.min(...notas) : null)
+      }
+    })
+  }
+
+  if (key === 'professor_total_turmas') {
+    const totals = new Map<number, { nome: string; total: number }>()
+    turmas.forEach(turma => {
+      if (!turma.professor) return
+      const current = totals.get(turma.professor.id) ?? {
+        nome: turma.professor.nome,
+        total: 0
+      }
+      current.total += 1
+      totals.set(turma.professor.id, current)
+    })
+    return Array.from(totals.values())
+      .map(item => ({ professor: item.nome, total: item.total }))
+      .sort((a, b) => Number(b.total) - Number(a.total))
+  }
+
+  if (key === 'professor_disciplinas') {
+    const groups = new Map<number, { nome: string; disciplinas: Set<string> }>()
+    turmas.forEach(turma => {
+      if (!turma.professor || !turma.disciplina) return
+      const current = groups.get(turma.professor.id) ?? {
+        nome: turma.professor.nome,
+        disciplinas: new Set<string>()
+      }
+      current.disciplinas.add(turma.disciplina.nome)
+      groups.set(turma.professor.id, current)
+    })
+    return Array.from(groups.values()).map(item => ({
+      professor: item.nome,
+      disciplinas: Array.from(item.disciplinas).sort().join(', ')
+    }))
+  }
+
+  if (key === 'disciplinas_sem_turma') {
+    const disciplinasComTurma = new Set(
+      turmas
+        .map(turma => turma.disciplina?.id)
+        .filter((id): id is number => typeof id === 'number')
+    )
+    return disciplinas
+      .filter(disciplina => !disciplinasComTurma.has(disciplina.id))
+      .map(disciplina => ({
+        codigo: disciplina.codigo,
+        disciplina: disciplina.nome
+      }))
+  }
+
+  if (key === 'provas_nao_aplicadas') {
+    return groupRelatorioByProva(rows)
+      .filter(group => provaSituacao(group) === 'Nao aplicada')
+      .map(group => ({
+        prova: readyValue(group[0].provaCodigo),
+        disciplina: readyValue(group[0].disciplinaNome),
+        situacao: 'Nao aplicada'
+      }))
+  }
+
+  const totals = new Map<number, { nome: string; total: number }>()
+  disciplinas.forEach(disciplina => {
+    totals.set(disciplina.id, { nome: disciplina.nome, total: 0 })
+  })
+  turmas.forEach(turma => {
+    if (!turma.disciplina) return
+    const current = totals.get(turma.disciplina.id) ?? {
+      nome: turma.disciplina.nome,
+      total: 0
+    }
+    current.total += 1
+    totals.set(turma.disciplina.id, current)
+  })
+  return Array.from(totals.values())
+    .map(item => ({ disciplina: item.nome, total: item.total }))
+    .sort((a, b) => Number(b.total) - Number(a.total))
+}
+
+const readyNumber = (value: string | number | undefined) => {
+  if (typeof value === 'number') return value
+  if (typeof value !== 'string') return null
+  const parsed = Number(value.replace(',', '.'))
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+const readyChartRows = (rows: ReadyRow[], query: ReadyQuery) => {
+  const labelColumn =
+    query.columns.find(column => readyNumber(rows[0]?.[column.key]) === null) ??
+    query.columns[0]
+  const valueColumn = ['total', 'media', 'maior', 'menor']
+    .map(key => query.columns.find(column => column.key === key))
+    .find((column): column is ReadyColumn => !!column)
+  const grouped = new Map<string, number>()
+
+  rows.forEach(row => {
+    const label = String(readyValue(row[labelColumn.key]))
+    const number = valueColumn ? readyNumber(row[valueColumn.key]) : null
+    grouped.set(label, (grouped.get(label) ?? 0) + (number ?? 1))
+  })
+
+  return Array.from(grouped.entries())
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label))
+    .slice(0, 12)
+}
+
+function downloadReadyCsv(filename: string, rows: ReadyRow[], columns: ReadyColumn[]) {
+  if (rows.length === 0) return
+  const csv = [
+    columns.map(column => `"${column.label.replace(/"/g, '""')}"`).join(','),
+    ...rows.map(row =>
+      columns
+        .map(column => `"${String(readyValue(row[column.key])).replace(/"/g, '""')}"`)
+        .join(',')
+    )
+  ].join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+function ConsultasProntas() {
+  const [selected, setSelected] = useState<ReadyQueryKey>('aluno_turmas')
+  const [started, setStarted] = useState<ReadyQueryKey | null>(null)
+  const [carouselPage, setCarouselPage] = useState(0)
+  const [resultPage, setResultPage] = useState(1)
+  const [pageSize, setPageSize] = useState(25)
+  const [view, setView] = useState<ReadyView>('table')
+  const [openDevMenu, setOpenDevMenu] = useState<ReadyQueryKey | null>(null)
+  const [queryModal, setQueryModal] = useState<{
+    key: ReadyQueryKey
+    mode: ReadyQueryModalMode
+  } | null>(null)
+  const [queryTexts, setQueryTexts] = useState(loadReadyQueryTexts)
+  const [queryDraft, setQueryDraft] = useState('')
+  const relatorio = useQuery({
+    queryKey: ['consultas', 'relatorio-academico'],
+    queryFn: relatorioAcademico
+  })
+  const alunos = useQuery({ queryKey: ['alunos'], queryFn: listarAlunos })
+  const professores = useQuery({
+    queryKey: ['professores'],
+    queryFn: listarProfessores
+  })
+  const disciplinas = useQuery({
+    queryKey: ['disciplinas'],
+    queryFn: () => listarDisciplinas()
+  })
+  const turmas = useQuery({ queryKey: ['turmas'], queryFn: () => listarTurmas() })
+
+  const loading =
+    relatorio.isLoading ||
+    alunos.isLoading ||
+    professores.isLoading ||
+    disciplinas.isLoading ||
+    turmas.isLoading
+  const error =
+    relatorio.error ||
+    alunos.error ||
+    professores.error ||
+    disciplinas.error ||
+    turmas.error
+  const selectedQuery =
+    READY_QUERIES.find(item => item.key === selected) ?? READY_QUERIES[0]
+  const activeQuery =
+    READY_QUERIES.find(item => item.key === started) ?? selectedQuery
+  const carouselPages = Math.ceil(READY_QUERIES.length / READY_CAROUSEL_SIZE)
+  const visibleQueries = READY_QUERIES.slice(
+    carouselPage * READY_CAROUSEL_SIZE,
+    carouselPage * READY_CAROUSEL_SIZE + READY_CAROUSEL_SIZE
+  )
+
+  const readyRows = useMemo(
+    () =>
+      buildReadyRows(
+        started ?? selected,
+        relatorio.data ?? [],
+        alunos.data ?? [],
+        professores.data ?? [],
+        disciplinas.data ?? [],
+        turmas.data ?? []
+      ),
+    [alunos.data, disciplinas.data, professores.data, relatorio.data, selected, started, turmas.data]
+  )
+  const totalPages = Math.max(1, Math.ceil(readyRows.length / pageSize))
+  const safePage = Math.min(resultPage, totalPages)
+  const pagedRows = readyRows.slice((safePage - 1) * pageSize, safePage * pageSize)
+  const chartRows = useMemo(
+    () => readyChartRows(readyRows, activeQuery),
+    [activeQuery, readyRows]
+  )
+  const maxChartValue = Math.max(...chartRows.map(row => row.value), 1)
+  const totalChartValue = chartRows.reduce((sum, row) => sum + row.value, 0)
+  const modalQuery = queryModal
+    ? READY_QUERIES.find(item => item.key === queryModal.key)
+    : null
+
+  useEffect(() => {
+    localStorage.setItem(READY_QUERY_STORAGE_KEY, JSON.stringify(queryTexts))
+  }, [queryTexts])
+
+  const openQueryModal = (key: ReadyQueryKey, mode: ReadyQueryModalMode) => {
+    setQueryDraft(queryTexts[key] ?? DEFAULT_READY_QUERY_TEXTS[key])
+    setQueryModal({ key, mode })
+    setOpenDevMenu(null)
+  }
+
+  const saveQueryDraft = () => {
+    if (!queryModal) return
+    setQueryTexts(current => ({
+      ...current,
+      [queryModal.key]: queryDraft
+    }))
+    setQueryModal(null)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-10 text-text-muted">
+        <Spinner /> Carregando consultas prontas...
+      </div>
+    )
+  }
+
+  if (error) {
+    return <ErrorBox msg={errorMessage(error)} />
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <Card
+        title="Consultas prontas"
+        subtitle="Escolha um preset no carrossel e clique em Iniciar para carregar o resultado."
+        actions={
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              aria-label="Consultas anteriores"
+              onClick={() => setCarouselPage(page => Math.max(0, page - 1))}
+              disabled={carouselPage === 0}
+              className="ready-carousel-nav"
+            >
+              <span aria-hidden>‹</span>
+            </button>
+            <div className="flex items-center gap-1.5">
+              {Array.from({ length: carouselPages }).map((_, page) => (
+                <button
+                  key={page}
+                  type="button"
+                  aria-label={`Ir para pagina ${page + 1}`}
+                  onClick={() => setCarouselPage(page)}
+                  className={[
+                    'ready-carousel-dot',
+                    page === carouselPage ? 'ready-carousel-dot-active' : ''
+                  ].join(' ')}
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              aria-label="Proximas consultas"
+              onClick={() =>
+                setCarouselPage(page => Math.min(carouselPages - 1, page + 1))
+              }
+              disabled={carouselPage >= carouselPages - 1}
+              className="ready-carousel-nav"
+            >
+              <span aria-hidden>›</span>
+            </button>
+          </div>
+        }
+      >
+        <div className="ready-carousel-window">
+          <div
+            key={carouselPage}
+            className="ready-carousel-page grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5"
+          >
+            {visibleQueries.map((item, offset) => {
+              const active = item.key === selected
+              const index = READY_QUERIES.findIndex(query => query.key === item.key)
+              return (
+                <div
+                  key={item.key}
+                  onClick={() => setSelected(item.key)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setSelected(item.key)
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  style={{ animationDelay: `${offset * 55}ms` }}
+                  className={[
+                    'ready-query-card min-h-36 rounded-card border p-4 pr-11 text-left',
+                    active
+                      ? 'ready-query-card-active border-primary bg-primary-light text-primary-dark'
+                      : 'border-surface-border bg-surface-card text-text'
+                  ].join(' ')}
+                >
+                  <button
+                    type="button"
+                    aria-label={`Opcoes da consulta ${index + 1}`}
+                    onClick={e => {
+                      e.stopPropagation()
+                      setOpenDevMenu(current =>
+                        current === item.key ? null : item.key
+                      )
+                    }}
+                    className="ready-query-menu-button"
+                  >
+                    <span aria-hidden className="ready-query-dots">
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                  </button>
+                  {openDevMenu === item.key && (
+                    <div
+                      className="ready-query-dev-menu"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => openQueryModal(item.key, 'view')}
+                      >
+                        Visualizar query
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openQueryModal(item.key, 'edit')}
+                      >
+                        Atualizar query
+                      </button>
+                    </div>
+                  )}
+                  <span className="ready-query-index">
+                    Consulta {index + 1}
+                  </span>
+                  <span className="mt-3 block text-base font-semibold">
+                    {item.title}
+                  </span>
+                  <span className="mt-2 block text-sm text-text-muted">
+                    {item.subtitle}
+                  </span>
+                  <span className="mt-4 inline-flex items-center text-xs font-semibold uppercase tracking-wide">
+                    {active ? 'Selecionada' : 'Ver preset'}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-3 rounded-card border border-surface-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-text">{selectedQuery.title}</p>
+            <p className="text-sm text-text-muted">{selectedQuery.subtitle}</p>
+          </div>
+          <Button
+            type="button"
+            onClick={() => {
+              setStarted(selected)
+              setResultPage(1)
+              setView('table')
+            }}
+          >
+            Iniciar
+          </Button>
+        </div>
+      </Card>
+
+      {started && (
+        <Card
+          title={activeQuery.title}
+          subtitle={`${readyRows.length} registro(s) encontrados`}
+          actions={
+            <div className="flex flex-wrap items-center gap-2">
+              {(['table', 'bar', 'kpi'] as ReadyView[]).map(option => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setView(option)}
+                  className={[
+                    'rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+                    view === option
+                      ? 'border-primary bg-primary text-white'
+                      : 'border-surface-border bg-white text-text hover:border-primary'
+                  ].join(' ')}
+                >
+                  {option === 'table'
+                    ? 'Tabela'
+                    : option === 'bar'
+                      ? 'Grafico'
+                      : 'Resumo'}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  downloadReadyCsv('consulta-pronta.csv', readyRows, activeQuery.columns)
+                }
+                className="rounded-full border border-surface-border bg-white px-3 py-1.5 text-xs font-semibold text-text hover:border-primary"
+              >
+                CSV
+              </button>
+            </div>
+          }
+        >
+          {view === 'kpi' ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <StatCard label="Registros" value={readyRows.length} />
+              <StatCard label="Grupos no grafico" value={chartRows.length} />
+              <StatCard label="Total calculado" value={totalChartValue.toFixed(0)} />
+            </div>
+          ) : view === 'bar' ? (
+            <div className="space-y-4">
+              {chartRows.length === 0 ? (
+                <p className="text-sm text-text-muted">Sem dados para grafico.</p>
+              ) : (
+                chartRows.map(row => (
+                  <div key={row.label}>
+                    <div className="mb-1 flex justify-between gap-3 text-sm">
+                      <span className="truncate font-medium text-text">{row.label}</span>
+                      <span className="font-semibold text-text-muted">
+                        {row.value}
+                      </span>
+                    </div>
+                    <div className="h-4 overflow-hidden rounded-full bg-surface">
+                      <div
+                        className="h-full bg-primary"
+                        style={{
+                          width: `${Math.max((row.value / maxChartValue) * 100, 3)}%`
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs text-text-muted">
+                  Pagina {safePage} de {totalPages}
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-text-muted">
+                    Linhas
+                  </span>
+                  <select
+                    value={pageSize}
+                    onChange={e => {
+                      setPageSize(Number(e.target.value))
+                      setResultPage(1)
+                    }}
+                    className="h-8 rounded-lg border border-surface-border bg-white px-2 text-xs text-text"
+                  >
+                    {READY_PAGE_SIZE_OPTIONS.map(size => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="border-b border-surface-border text-xs uppercase tracking-wide text-text-muted">
+                    <tr>
+                      {activeQuery.columns.map(column => (
+                        <th
+                          key={column.key}
+                          className="whitespace-nowrap py-2 pr-4"
+                        >
+                          {column.label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-surface-border">
+                    {pagedRows.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={activeQuery.columns.length}
+                          className="py-8 text-center text-text-muted"
+                        >
+                          Nenhum registro encontrado para esta consulta.
+                        </td>
+                      </tr>
+                    ) : (
+                      pagedRows.map((row, index) => (
+                        <tr key={index} className="hover:bg-surface">
+                          {activeQuery.columns.map(column => (
+                            <td
+                              key={column.key}
+                              className="whitespace-nowrap py-2 pr-4 text-text"
+                            >
+                              {readyValue(row[column.key])}
+                            </td>
+                          ))}
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs text-text-muted">
+                  Mostrando {pagedRows.length} de {readyRows.length} registro(s).
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setResultPage(page => Math.max(1, page - 1))}
+                    disabled={safePage === 1}
+                  >
+                    Anterior
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setResultPage(page => Math.min(totalPages, page + 1))
+                    }
+                    disabled={safePage >= totalPages}
+                  >
+                    Proxima
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </Card>
+      )}
+
+      <Modal
+        open={!!queryModal}
+        onClose={() => setQueryModal(null)}
+        title={
+          queryModal?.mode === 'edit'
+            ? 'Atualizar query'
+            : 'Visualizar query'
+        }
+        size="lg"
+      >
+        <div className="flex flex-col gap-3">
+          <div>
+            <p className="text-sm font-semibold text-text">
+              {modalQuery?.title ?? 'Consulta pronta'}
+            </p>
+            <p className="text-sm text-text-muted">
+              {queryModal?.mode === 'edit'
+                ? 'Edicao local para documentar/ajustar a query exibida neste preset.'
+                : 'Query de referencia usada para explicar o preset.'}
+            </p>
+          </div>
+
+          {queryModal?.mode === 'edit' ? (
+            <textarea
+              value={queryDraft}
+              onChange={e => setQueryDraft(e.target.value)}
+              className="min-h-80 w-full rounded-card border border-surface-border bg-white p-3 font-mono text-xs leading-relaxed text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              spellCheck={false}
+            />
+          ) : (
+            <pre className="max-h-[60vh] overflow-auto rounded-card border border-surface-border bg-surface p-3 font-mono text-xs leading-relaxed text-text">
+              {queryDraft}
+            </pre>
+          )}
+
+          {queryModal?.mode === 'edit' && (
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setQueryModal(null)}
+              >
+                Cancelar
+              </Button>
+              <Button type="button" onClick={saveQueryDraft}>
+                Salvar query
+              </Button>
+            </div>
+          )}
+        </div>
+      </Modal>
+    </div>
   )
 }
 

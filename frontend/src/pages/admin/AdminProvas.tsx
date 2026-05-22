@@ -12,7 +12,11 @@ import {
   type ProvaPayload
 } from '../../api/provas'
 import { listarTurmas } from '../../api/turmas'
-import { detalhesDaTurma } from '../../api/consultas'
+import {
+  detalhesDaTurma,
+  relatorioAcademico,
+  type RelatorioAcademicoRow
+} from '../../api/consultas'
 import { PageHeader } from '../../components/layout/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
@@ -150,6 +154,23 @@ function formatConteudoProva(conteudo?: string | null) {
   return conteudo
 }
 
+function tituloProva(conteudo?: string | null) {
+  if (!conteudo) return 'Prova sem titulo'
+  try {
+    const parsed = JSON.parse(conteudo) as {
+      formato?: string
+      titulo?: string
+      questoes?: unknown[]
+    }
+    if (parsed.formato === 'ghflusao-prova-v1') {
+      return parsed.titulo || 'Prova'
+    }
+  } catch {
+    return conteudo.slice(0, 80)
+  }
+  return conteudo.slice(0, 80)
+}
+
 interface DraftProva {
   titulo: string
   peso: string
@@ -189,6 +210,18 @@ interface LastOperation {
   tone: 'success' | 'error'
 }
 
+interface ProvaSalva {
+  id: number
+  codigo: string
+  titulo: string
+  resumo: string
+  turma: string
+  disciplina: string
+  curso: string
+  totalResultados: number
+  media: number | null
+}
+
 type SectionKey = 'gerador' | 'historico' | 'notas'
 
 const today = () => new Date().toISOString().slice(0, 10)
@@ -205,6 +238,38 @@ function buildNotaDrafts(data?: ProvaLancamentoView) {
     }
   })
   return next
+}
+
+function provasSalvasFromRelatorio(rows: RelatorioAcademicoRow[]): ProvaSalva[] {
+  const groups = new Map<number, RelatorioAcademicoRow[]>()
+
+  rows.forEach(row => {
+    if (row.provaId == null || !row.provaCodigo) return
+    groups.set(row.provaId, [...(groups.get(row.provaId) ?? []), row])
+  })
+
+  return Array.from(groups.values())
+    .map(group => {
+      const first = group[0]
+      const notas = group
+        .map(row => row.resultadoNota)
+        .filter((nota): nota is number => typeof nota === 'number')
+      return {
+        id: first.provaId as number,
+        codigo: first.provaCodigo ?? '',
+        titulo: tituloProva(first.provaConteudo),
+        resumo: formatConteudoProva(first.provaConteudo),
+        turma: first.turmaCodigo ?? '-',
+        disciplina: first.disciplinaNome ?? '-',
+        curso: first.cursoNome ?? '-',
+        totalResultados: group.filter(row => row.resultadoId != null).length,
+        media:
+          notas.length > 0
+            ? notas.reduce((sum, nota) => sum + nota, 0) / notas.length
+            : null
+      }
+    })
+    .sort((a, b) => b.id - a.id)
 }
 
 export function AdminProvas() {
@@ -227,6 +292,7 @@ export function AdminProvas() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [codigoNotas, setCodigoNotas] = useState('')
+  const [searchNotas, setSearchNotas] = useState('')
   const [submittedNotasCode, setSubmittedNotasCode] = useState('')
   const [notaDrafts, setNotaDrafts] = useState<Record<number, NotaDraft>>({})
   const [alert, setAlert] = useState<{
@@ -290,6 +356,12 @@ export function AdminProvas() {
       ),
     enabled: !!turmaId
   })
+  const relatorioProvas = useQuery({
+    queryKey: ['consultas', 'relatorio-academico'],
+    queryFn: () =>
+      measureOperation('Carregar provas salvas', relatorioAcademico),
+    staleTime: 30_000
+  })
   const provaLancamento = useQuery({
     queryKey: ['admin-prova-lancamento', submittedNotasCode],
     queryFn: () =>
@@ -314,7 +386,7 @@ export function AdminProvas() {
     const list = detalhe.data?.provas ?? []
     if (!term) return list
     return list.filter(p =>
-      [p.codigo, p.conteudo, String(p.peso), String(p.mediaTurma ?? '')]
+      [p.codigo, tituloProva(p.conteudo), p.conteudo, String(p.peso), String(p.mediaTurma ?? '')]
         .filter(Boolean)
         .some(value => String(value).toLowerCase().includes(term))
     )
@@ -328,6 +400,27 @@ export function AdminProvas() {
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE
   )
+  const provasSalvas = useMemo(
+    () => provasSalvasFromRelatorio(relatorioProvas.data ?? []),
+    [relatorioProvas.data]
+  )
+  const provasSalvasFiltradas = useMemo(() => {
+    const term = searchNotas.trim().toLowerCase()
+    if (!term) return provasSalvas
+    return provasSalvas.filter(prova =>
+      [
+        prova.codigo,
+        prova.titulo,
+        prova.resumo,
+        prova.turma,
+        prova.disciplina,
+        prova.curso,
+        String(prova.id)
+      ]
+        .filter(Boolean)
+        .some(value => String(value).toLowerCase().includes(term))
+    )
+  }, [provasSalvas, searchNotas])
 
   const loteMutation = useMutation({
     mutationFn: () =>
@@ -341,6 +434,7 @@ export function AdminProvas() {
       })
       setDrafts([])
       qc.invalidateQueries({ queryKey: ['consulta-turma-detalhes', turmaId] })
+      qc.invalidateQueries({ queryKey: ['consultas', 'relatorio-academico'] })
     },
     onError: (err: { response?: { data?: { message?: string } } }) => {
       setAlert({
@@ -386,6 +480,7 @@ export function AdminProvas() {
       setAlert({ tone: 'success', msg: 'Nota salva.' })
       qc.invalidateQueries({ queryKey: ['admin-prova-lancamento', submittedNotasCode] })
       qc.invalidateQueries({ queryKey: ['consulta-turma-detalhes', turmaId] })
+      qc.invalidateQueries({ queryKey: ['consultas', 'relatorio-academico'] })
     },
     onError: (err: { response?: { data?: { message?: string } } }) => {
       setAlert({
@@ -1043,6 +1138,7 @@ export function AdminProvas() {
             <THead>
               <TR>
                 <TH>ID da prova</TH>
+                <TH>Nome</TH>
                 <TH>Peso</TH>
                 <TH>Resumo</TH>
                 <TH>Resultados</TH>
@@ -1052,21 +1148,26 @@ export function AdminProvas() {
             </THead>
             <TBody>
               {!turmaId && (
-                <EmptyRow colSpan={6}>
+                <EmptyRow colSpan={7}>
                   Selecione curso, disciplina e turma para visualizar provas.
                 </EmptyRow>
               )}
               {turmaId && detalhe.isError && (
-                <EmptyRow colSpan={6}>Erro ao carregar provas da turma.</EmptyRow>
+                <EmptyRow colSpan={7}>Erro ao carregar provas da turma.</EmptyRow>
               )}
               {turmaId && !detalhe.isError && provas.length === 0 && (
-                <EmptyRow colSpan={6}>Nenhuma prova cadastrada para a turma.</EmptyRow>
+                <EmptyRow colSpan={7}>Nenhuma prova cadastrada para a turma.</EmptyRow>
               )}
               {pagedProvas.map(p => (
                 <TR key={p.id}>
                   <TD>
                     <span className="font-mono text-xs font-semibold">
                       {p.codigo}
+                    </span>
+                  </TD>
+                  <TD>
+                    <span className="font-semibold text-text">
+                      {tituloProva(p.conteudo)}
                     </span>
                   </TD>
                   <TD>{p.peso}</TD>
@@ -1104,7 +1205,7 @@ export function AdminProvas() {
         <div className="border-b border-surface-border px-5 py-3">
           <h2 className="text-sm font-semibold text-text">Lancar notas</h2>
           <p className="mt-1 text-xs text-text-muted">
-            Busque pelo ID de 6 digitos da prova ou use o botao no historico.
+            Selecione uma prova salva abaixo ou busque manualmente pelo ID.
           </p>
         </div>
         <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-[240px_auto_1fr] md:items-end">
@@ -1131,6 +1232,116 @@ export function AdminProvas() {
             <p className="text-sm text-text-muted">
               Prova <span className="font-mono font-semibold text-text">{provaLancamento.data.prova.codigo}</span>
               {' '}carregada para lancamento.
+            </p>
+          )}
+        </div>
+      </Card>
+
+      <Card className="mb-4" noPadding>
+        <div className="border-b border-surface-border px-5 py-3">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-text">Provas salvas</h2>
+              <p className="mt-1 text-xs text-text-muted">
+                Clique em uma prova para iniciar o lancamento de notas sem decorar o ID.
+              </p>
+            </div>
+            <span className="text-xs font-semibold text-text-muted">
+              {provasSalvasFiltradas.length} encontrada(s)
+            </span>
+          </div>
+        </div>
+        <div className="p-5">
+          <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-end">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-text-muted mb-1.5">
+                Buscar prova
+              </label>
+              <Input
+                value={searchNotas}
+                onChange={e => setSearchNotas(e.target.value)}
+                placeholder="ID, nome, turma, disciplina ou curso..."
+              />
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setSearchNotas('')}
+            >
+              Limpar
+            </Button>
+          </div>
+
+          {relatorioProvas.isLoading ? (
+            <div className="flex items-center justify-center gap-2 py-8 text-text-muted">
+              <Spinner /> Carregando provas salvas...
+            </div>
+          ) : provasSalvasFiltradas.length === 0 ? (
+            <p className="rounded-card border border-surface-border bg-surface px-4 py-6 text-center text-sm text-text-muted">
+              Nenhuma prova salva encontrada.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
+              {provasSalvasFiltradas.slice(0, 12).map(prova => {
+                const active = submittedNotasCode === prova.codigo
+                return (
+                  <button
+                    key={prova.id}
+                    type="button"
+                    onClick={() => abrirLancamento(prova.codigo)}
+                    className={[
+                      'rounded-card border p-4 text-left transition hover:-translate-y-0.5 hover:border-primary hover:shadow-card',
+                      active
+                        ? 'border-primary bg-primary-light text-primary-dark'
+                        : 'border-surface-border bg-white text-text'
+                    ].join(' ')}
+                  >
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-text">
+                          {prova.titulo}
+                        </p>
+                        <p className="mt-1 text-xs text-text-muted">
+                          {prova.disciplina} - Turma {prova.turma}
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-surface px-2 py-1 font-mono text-xs font-bold text-text">
+                        {prova.codigo}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <p className="font-semibold uppercase tracking-wide text-text-muted">
+                          ID
+                        </p>
+                        <p className="mt-1 font-mono font-bold text-text">{prova.id}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold uppercase tracking-wide text-text-muted">
+                          Alunos
+                        </p>
+                        <p className="mt-1 font-bold text-text">{prova.totalResultados}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold uppercase tracking-wide text-text-muted">
+                          Media
+                        </p>
+                        <p className="mt-1 font-bold text-text">
+                          {prova.media == null ? '-' : prova.media.toFixed(1)}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="mt-3 truncate text-xs text-text-muted">
+                      {prova.curso}
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          {provasSalvasFiltradas.length > 12 && (
+            <p className="mt-3 text-xs text-text-muted">
+              Mostrando 12 provas. Use a busca para filtrar pelo nome, ID ou disciplina.
             </p>
           )}
         </div>

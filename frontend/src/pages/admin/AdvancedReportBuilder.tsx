@@ -33,14 +33,24 @@ type Primitive = string | number | null | undefined
 type Row = Record<string, Primitive>
 type FilterOp =
   | 'contains'
+  | 'notContains'
   | 'equals'
   | 'notEquals'
   | 'startsWith'
   | 'endsWith'
+  | 'inList'
+  | 'notInList'
   | 'gt'
   | 'gte'
   | 'lt'
   | 'lte'
+  | 'between'
+  | 'min'
+  | 'max'
+  | 'aboveAvg'
+  | 'belowAvg'
+  | 'top10Highest'
+  | 'top10Lowest'
   | 'empty'
   | 'notEmpty'
 
@@ -167,28 +177,88 @@ const defaultConfig: BuilderConfig = {
 
 const OP_LABELS: Record<FilterOp, string> = {
   contains: 'contem',
+  notContains: 'nao contem',
   equals: 'e igual a',
   notEquals: 'e diferente de',
   startsWith: 'comeca com',
   endsWith: 'termina com',
+  inList: 'esta na lista',
+  notInList: 'nao esta na lista',
   gt: 'maior que',
   gte: 'maior ou igual a',
   lt: 'menor que',
   lte: 'menor ou igual a',
+  between: 'entre',
+  min: 'valor minimo',
+  max: 'valor maximo',
+  aboveAvg: 'acima da media',
+  belowAvg: 'abaixo da media',
+  top10Highest: 'top 10 maiores',
+  top10Lowest: 'top 10 menores',
   empty: 'esta vazio',
   notEmpty: 'esta preenchido'
 }
 
 const TEXT_OPS: FilterOp[] = [
   'contains',
+  'notContains',
   'equals',
   'notEquals',
   'startsWith',
   'endsWith',
+  'inList',
+  'notInList',
   'empty',
   'notEmpty'
 ]
-const NUMBER_OPS: FilterOp[] = ['equals', 'notEquals', 'gt', 'gte', 'lt', 'lte', 'empty', 'notEmpty']
+const NUMBER_OPS: FilterOp[] = [
+  'equals',
+  'notEquals',
+  'gt',
+  'gte',
+  'lt',
+  'lte',
+  'between',
+  'inList',
+  'notInList',
+  'min',
+  'max',
+  'aboveAvg',
+  'belowAvg',
+  'top10Highest',
+  'top10Lowest',
+  'empty',
+  'notEmpty'
+]
+
+const VALUELESS_OPS = new Set<FilterOp>([
+  'empty',
+  'notEmpty',
+  'min',
+  'max',
+  'aboveAvg',
+  'belowAvg',
+  'top10Highest',
+  'top10Lowest'
+])
+
+const ORACLE_FILTER_PRESETS: Array<{
+  label: string
+  field: string
+  op: FilterOp
+  value?: string
+}> = [
+  { label: 'WHERE nota < 6', field: 'resultado_nota', op: 'lt', value: '6' },
+  { label: 'BETWEEN 6 e 10', field: 'resultado_nota', op: 'between', value: '6,10' },
+  { label: 'IN turnos', field: 'turma_turno', op: 'inList', value: 'Noite, Manha' },
+  { label: 'LIKE aluno', field: 'aluno_nome', op: 'contains' },
+  { label: 'NOT LIKE conteudo', field: 'prova_conteudo', op: 'notContains' },
+  { label: 'IS NULL professor', field: 'professor_nome', op: 'empty' },
+  { label: 'MAX nota', field: 'resultado_nota', op: 'max' },
+  { label: 'MIN nota', field: 'resultado_nota', op: 'min' },
+  { label: 'AVG acima', field: 'resultado_nota', op: 'aboveAvg' },
+  { label: 'TOP 10 medias', field: 'matricula_media', op: 'top10Highest' }
+]
 
 const tableLabel = (key: TableKey) =>
   TABLES.find(table => table.key === key)?.label ?? key
@@ -202,7 +272,14 @@ const fieldType = (key: string) =>
 const filterOperators = (field: string) =>
   fieldType(field) === 'number' ? NUMBER_OPS : TEXT_OPS
 
-const filterNeedsValue = (op: FilterOp) => op !== 'empty' && op !== 'notEmpty'
+const filterNeedsValue = (op: FilterOp) => !VALUELESS_OPS.has(op)
+
+const filterPlaceholder = (op: FilterOp) => {
+  if (!filterNeedsValue(op)) return 'Calculado automaticamente'
+  if (op === 'between') return 'Ex: 6,10'
+  if (op === 'inList' || op === 'notInList') return 'Ex: Noite, Manha, EAD'
+  return 'Valor'
+}
 
 const createFilter = (
   field: string,
@@ -229,8 +306,50 @@ const asNumber = (value: Primitive) => {
 const asText = (value: Primitive) =>
   value === null || value === undefined || value === '' ? '-' : String(value)
 
+const parseNumberInput = (value: string) => Number(value.trim().replace(',', '.'))
+
 const isEmptyValue = (value: Primitive) =>
   value === null || value === undefined || value === ''
+
+const splitList = (value: string) =>
+  value
+    .split(/[,\n;]/)
+    .map(item => item.trim().toLowerCase())
+    .filter(Boolean)
+
+const splitNumberRange = (value: string) => {
+  const parts = value
+    .split(/[,\n;|]/)
+    .map(item => Number(item.trim().replace(',', '.')))
+    .filter(Number.isFinite)
+  return parts.length >= 2
+    ? [Math.min(parts[0], parts[1]), Math.max(parts[0], parts[1])] as const
+    : null
+}
+
+const numericValues = (rows: Row[], field: string) =>
+  rows
+    .map(row => row[field])
+    .filter(value => !isEmptyValue(value))
+    .map(asNumber)
+    .filter(Number.isFinite)
+
+const numericStats = (rows: Row[], field: string) => {
+  const values = numericValues(rows, field)
+  if (values.length === 0) {
+    return { min: null, max: null, avg: null, topHigh: null, topLow: null }
+  }
+  const sortedAsc = [...values].sort((a, b) => a - b)
+  const sortedDesc = [...values].sort((a, b) => b - a)
+  const avg = values.reduce((sum, value) => sum + value, 0) / values.length
+  return {
+    min: sortedAsc[0],
+    max: sortedDesc[0],
+    avg,
+    topHigh: sortedDesc[Math.min(9, sortedDesc.length - 1)],
+    topLow: sortedAsc[Math.min(9, sortedAsc.length - 1)]
+  }
+}
 
 function unique<T>(items: T[]) {
   return Array.from(new Set(items))
@@ -343,16 +462,40 @@ function buildRows(
 }
 
 function applyFilters(rows: Row[], filters: FilterDef[]) {
+  const statsByField = new Map<string, ReturnType<typeof numericStats>>()
+  filters.forEach(filter => {
+    if (filter.field && fieldType(filter.field) === 'number') {
+      statsByField.set(filter.field, numericStats(rows, filter.field))
+    }
+  })
+
   return rows.filter(row =>
     filters.every(filter => {
       if (!filter.field) return true
       const value = row[filter.field]
       if (filter.op === 'empty') return isEmptyValue(value)
       if (filter.op === 'notEmpty') return !isEmptyValue(value)
+      const stats = statsByField.get(filter.field) ?? null
+      const numberValue = asNumber(value)
+      if (filter.op === 'min') return !isEmptyValue(value) && stats?.min != null && numberValue === stats.min
+      if (filter.op === 'max') return !isEmptyValue(value) && stats?.max != null && numberValue === stats.max
+      if (filter.op === 'aboveAvg') return !isEmptyValue(value) && stats?.avg != null && numberValue > stats.avg
+      if (filter.op === 'belowAvg') return !isEmptyValue(value) && stats?.avg != null && numberValue < stats.avg
+      if (filter.op === 'top10Highest') return !isEmptyValue(value) && stats?.topHigh != null && numberValue >= stats.topHigh
+      if (filter.op === 'top10Lowest') return !isEmptyValue(value) && stats?.topLow != null && numberValue <= stats.topLow
       if (filter.value.trim() === '') return true
       const expected = filter.value.trim().toLowerCase()
+      if (filter.op === 'inList') {
+        return splitList(filter.value).includes(normalizeText(value))
+      }
+      if (filter.op === 'notInList') {
+        return !splitList(filter.value).includes(normalizeText(value))
+      }
       if (filter.op === 'contains') {
         return normalizeText(value).includes(expected)
+      }
+      if (filter.op === 'notContains') {
+        return !normalizeText(value).includes(expected)
       }
       if (filter.op === 'equals') {
         return normalizeText(value) === expected
@@ -360,10 +503,14 @@ function applyFilters(rows: Row[], filters: FilterDef[]) {
       if (filter.op === 'notEquals') return normalizeText(value) !== expected
       if (filter.op === 'startsWith') return normalizeText(value).startsWith(expected)
       if (filter.op === 'endsWith') return normalizeText(value).endsWith(expected)
-      if (filter.op === 'gt') return asNumber(value) > Number(filter.value)
-      if (filter.op === 'gte') return asNumber(value) >= Number(filter.value)
-      if (filter.op === 'lt') return asNumber(value) < Number(filter.value)
-      if (filter.op === 'lte') return asNumber(value) <= Number(filter.value)
+      if (filter.op === 'gt') return numberValue > parseNumberInput(filter.value)
+      if (filter.op === 'gte') return numberValue >= parseNumberInput(filter.value)
+      if (filter.op === 'lt') return numberValue < parseNumberInput(filter.value)
+      if (filter.op === 'lte') return numberValue <= parseNumberInput(filter.value)
+      if (filter.op === 'between') {
+        const range = splitNumberRange(filter.value)
+        return range ? numberValue >= range[0] && numberValue <= range[1] : true
+      }
       return true
     })
   )
@@ -752,42 +899,24 @@ export function AdvancedReportBuilder() {
           </>
         }
       >
-        <div className="mb-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => addSmartFilter('resultado_nota', 'lt', '6')}
-            className="rounded-full border border-surface-border px-3 py-1.5 text-xs font-semibold text-text-muted hover:border-primary hover:text-primary"
-          >
-            Nota menor que 6
-          </button>
-          <button
-            type="button"
-            onClick={() => addSmartFilter('turma_turno', 'equals', 'Noite')}
-            className="rounded-full border border-surface-border px-3 py-1.5 text-xs font-semibold text-text-muted hover:border-primary hover:text-primary"
-          >
-            Turma noturna
-          </button>
-          <button
-            type="button"
-            onClick={() => addSmartFilter('resultado_presente', 'equals', 'Ausente')}
-            className="rounded-full border border-surface-border px-3 py-1.5 text-xs font-semibold text-text-muted hover:border-primary hover:text-primary"
-          >
-            Ausente em prova
-          </button>
-          <button
-            type="button"
-            onClick={() => addSmartFilter('matricula_situacao', 'equals', 'ATIVA')}
-            className="rounded-full border border-surface-border px-3 py-1.5 text-xs font-semibold text-text-muted hover:border-primary hover:text-primary"
-          >
-            Matricula ativa
-          </button>
-          <button
-            type="button"
-            onClick={() => addSmartFilter('professor_nome', 'empty')}
-            className="rounded-full border border-surface-border px-3 py-1.5 text-xs font-semibold text-text-muted hover:border-primary hover:text-primary"
-          >
-            Sem professor
-          </button>
+        <div className="mb-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
+            Top 10 filtros estilo Oracle
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {ORACLE_FILTER_PRESETS.filter(preset =>
+              availableFields.some(field => field.key === preset.field)
+            ).map(preset => (
+              <button
+                key={`${preset.field}-${preset.op}-${preset.value ?? 'auto'}`}
+                type="button"
+                onClick={() => addSmartFilter(preset.field, preset.op, preset.value ?? '')}
+                className="rounded-full border border-surface-border px-3 py-1.5 text-xs font-semibold text-text-muted hover:border-primary hover:text-primary"
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
         </div>
         {config.filters.length === 0 ? (
           <p className="text-sm text-text-muted">
@@ -869,9 +998,7 @@ export function AdvancedReportBuilder() {
                         )
                       })
                     }
-                    placeholder={
-                      filterNeedsValue(filter.op) ? 'Valor' : 'Nao precisa preencher'
-                    }
+                    placeholder={filterPlaceholder(filter.op)}
                     disabled={!filterNeedsValue(filter.op)}
                     list={`filter-values-${filter.id}`}
                   />
