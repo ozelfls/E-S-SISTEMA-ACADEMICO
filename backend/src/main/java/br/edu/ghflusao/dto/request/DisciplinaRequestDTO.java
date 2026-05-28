@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record DisciplinaRequestDTO(
-        @NotBlank String codigo,
+        String codigo,
         @NotBlank String nome,
         @NotNull Integer creditos,
         @NotNull Integer ch,

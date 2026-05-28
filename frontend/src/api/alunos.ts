@@ -15,7 +15,6 @@ interface AlunoResponse {
 export interface AlunoPayload {
   nome: string
   cpf: string
-  matriculaId?: number
   turno: Turno
   cursoId: number
   email?: string

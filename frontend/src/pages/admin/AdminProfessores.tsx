@@ -37,7 +37,6 @@ const schema = z.object({
   cpf: z.string().regex(cpfRegex, 'Informe os 11 numeros do CPF'),
   email: z.string().email('E-mail inválido'),
   telefone: z.string().optional(),
-  registro: z.string().optional(),
   titulacao: z.string().optional(),
   regimeTrabalho: z.string().optional()
 })
@@ -108,7 +107,6 @@ export function AdminProfessores() {
       cpf: '',
       email: '',
       telefone: '',
-      registro: '',
       titulacao: '',
       regimeTrabalho: ''
     })
@@ -122,7 +120,6 @@ export function AdminProfessores() {
       cpf: onlyDigits(p.cpf ?? ''),
       email: p.email ?? '',
       telefone: p.telefone ?? '',
-      registro: p.registro ?? '',
       titulacao: p.titulacao ?? '',
       regimeTrabalho: p.regimeTrabalho ?? ''
     })
@@ -181,7 +178,6 @@ export function AdminProfessores() {
       cpf: onlyDigits(values.cpf),
       email: values.email,
       telefone: values.telefone || undefined,
-      registro: values.registro || undefined,
       titulacao: values.titulacao || undefined,
       regimeTrabalho:
         values.regimeTrabalho === 'INTEGRAL' ||
@@ -369,7 +365,9 @@ export function AdminProfessores() {
               <label className="block text-sm font-medium text-text mb-1">
                 Registro
               </label>
-              <Input {...form.register('registro')} />
+              <div className="flex h-10 items-center rounded-lg border border-surface-border bg-surface px-3 text-sm text-text-muted">
+                {editing?.registro ?? 'Gerado automaticamente'}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-text mb-1">

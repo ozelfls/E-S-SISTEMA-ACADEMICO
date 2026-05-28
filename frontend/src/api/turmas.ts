@@ -8,7 +8,7 @@ import type {
 } from '../types'
 
 export interface TurmaPayload {
-  codigo: string
+  codigo?: string
   horario?: string
   vagas: number
   semestre: string

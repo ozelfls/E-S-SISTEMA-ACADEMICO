@@ -2,7 +2,7 @@ import api from './client'
 import type { ApiResponse, Disciplina, Modalidade } from '../types'
 
 export interface DisciplinaPayload {
-  codigo: string
+  codigo?: string
   nome: string
   creditos: number
   ch: number

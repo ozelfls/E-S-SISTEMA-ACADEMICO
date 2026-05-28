@@ -20,6 +20,10 @@ public interface DisciplinaRepository extends JpaRepository<Disciplina, Long> {
 
     boolean existsByCursoIdAndAtivoTrue(Long cursoId);
 
+    boolean existsByCursoId(Long cursoId);
+
+    boolean existsByCodigo(String codigo);
+
     @Query("""
             select d from Disciplina d
             where d.ativo = true and (

@@ -43,7 +43,7 @@ public class ResultadoProva {
     @Column
     private Double nota;
 
-    @Column(name = "presente", columnDefinition = "NUMBER(1)")
+    @Column(name = "presente")
     @Convert(converter = BooleanToNumberConverter.class)
     private Boolean presente = false;
 

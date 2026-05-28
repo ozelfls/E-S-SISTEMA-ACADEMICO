@@ -31,7 +31,6 @@ import { Badge } from '../../components/ui/Badge'
 import type { Disciplina } from '../../types'
 
 const schema = z.object({
-  codigo: z.string().min(1, 'Informe o código'),
   nome: z.string().min(3, 'Mínimo 3 caracteres'),
   creditos: z.coerce.number().int().min(1).max(20),
   ch: z.coerce.number().int().min(15),
@@ -107,7 +106,6 @@ export function AdminDisciplinas({
   const openCreate = () => {
     setEditing(null)
     form.reset({
-      codigo: '',
       nome: '',
       creditos: 4,
       ch: 60,
@@ -122,7 +120,6 @@ export function AdminDisciplinas({
   const openEdit = (d: Disciplina) => {
     setEditing(d)
     form.reset({
-      codigo: d.codigo,
       nome: d.nome,
       creditos: d.creditos,
       ch: d.ch,
@@ -182,7 +179,6 @@ export function AdminDisciplinas({
 
   const onSubmit = form.handleSubmit(values => {
     const payload: DisciplinaPayload = {
-      codigo: values.codigo,
       nome: values.nome,
       creditos: Number(values.creditos),
       ch: Number(values.ch),
@@ -353,11 +349,9 @@ export function AdminDisciplinas({
               <label className="block text-sm font-medium text-text mb-1">
                 Código
               </label>
-              <Input
-                {...form.register('codigo')}
-                error={form.formState.errors.codigo?.message}
-                placeholder="MAT101"
-              />
+              <div className="flex h-10 items-center rounded-lg border border-surface-border bg-surface px-3 text-sm text-text-muted">
+                {editing?.codigo ?? 'Gerado automaticamente'}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-text mb-1">

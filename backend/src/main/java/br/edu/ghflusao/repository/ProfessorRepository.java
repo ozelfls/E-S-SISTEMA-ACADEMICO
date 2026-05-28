@@ -9,6 +9,8 @@ import java.util.List;
 
 public interface ProfessorRepository extends JpaRepository<Professor, Long> {
 
+    boolean existsByRegistro(String registro);
+
     @Query("""
             select p from Professor p
             where lower(p.nome) like lower(concat('%', :q, '%'))

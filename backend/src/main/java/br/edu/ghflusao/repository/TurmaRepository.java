@@ -65,6 +65,10 @@ public interface TurmaRepository extends JpaRepository<Turma, Long> {
 
     boolean existsByProfessorIdAndAtivoTrue(Long professorId);
 
+    boolean existsByProfessorId(Long professorId);
+
+    boolean existsByCodigo(String codigo);
+
     @Query("""
             select count(t) > 0
             from Turma t

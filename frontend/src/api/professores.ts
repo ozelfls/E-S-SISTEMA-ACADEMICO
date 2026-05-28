@@ -8,7 +8,6 @@ export interface ProfessorPayload {
   cpf: string
   email: string
   telefone?: string
-  registro?: string
   titulacao?: string
   regimeTrabalho?: RegimeTrabalho
 }

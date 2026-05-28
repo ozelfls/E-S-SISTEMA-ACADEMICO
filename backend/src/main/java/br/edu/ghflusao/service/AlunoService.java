@@ -11,6 +11,7 @@ import br.edu.ghflusao.repository.CursoRepository;
 import br.edu.ghflusao.repository.MatriculaEmTurmaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,7 @@ public class AlunoService {
     private final AlunoRepository alunoRepository;
     private final CursoRepository cursoRepository;
     private final MatriculaEmTurmaRepository matriculaRepository;
+    private final JdbcTemplate jdbc;
 
     public AlunoResponseDTO criar(AlunoCreateDTO dto) {
         Curso curso = cursoRepository.findById(dto.cursoId())
@@ -85,11 +87,19 @@ public class AlunoService {
     }
 
     private Integer proximaMatricula() {
-        Integer proxima = Math.max(alunoRepository.nextMatriculaId(), PRIMEIRA_MATRICULA);
+        Integer proxima = Math.max(nextMatriculaId(), PRIMEIRA_MATRICULA);
         if (proxima > ULTIMA_MATRICULA) {
             throw new BusinessException("Limite de matriculas de 6 digitos atingido.");
         }
         return proxima;
+    }
+
+    private Integer nextMatriculaId() {
+        Integer next = jdbc.queryForObject("select nextval('seq_aluno_matricula')", Integer.class);
+        if (next == null) {
+            throw new BusinessException("Nao foi possivel gerar a proxima matricula.");
+        }
+        return next;
     }
 
     private AlunoResponseDTO toResponse(Aluno aluno) {

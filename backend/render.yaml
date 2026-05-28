@@ -5,17 +5,21 @@ services:
     dockerfilePath: ./backend/Dockerfile
     buildCommand: cd backend && mvn clean package -DskipTests
     envVars:
-      - key: ORACLE_JDBC_URL
+      - key: POSTGRES_JDBC_URL
         sync: false
-      - key: ORACLE_USER
+      - key: POSTGRES_USER
         sync: false
-      - key: ORACLE_PASSWORD
+      - key: POSTGRES_PASSWORD
         sync: false
-      - key: ORACLE_SCHEMA
-        value: GHFLUSAO
+      - key: POSTGRES_SCHEMA
+        value: public
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGINS
         sync: false
       - key: SWAGGER_ENABLED
-        value: "true"
+        value: "false"
+      - key: BOOTSTRAP_DEMO_ADMINS
+        value: "false"

@@ -11,7 +11,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Convert;
@@ -44,7 +43,7 @@ public class Disciplina {
     @Column(nullable = false)
     private Integer ch;
 
-    @Lob
+    @Column(columnDefinition = "text")
     private String ementa;
 
     @Enumerated(EnumType.STRING)
@@ -56,7 +55,7 @@ public class Disciplina {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Curso curso;
 
-    @Column(nullable = false, columnDefinition = "NUMBER(1)")
+    @Column(nullable = false)
     @Convert(converter = BooleanToNumberConverter.class)
     private boolean ativo = true;
 

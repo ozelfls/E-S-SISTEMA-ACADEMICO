@@ -3,6 +3,7 @@ package br.edu.ghflusao.service;
 import br.edu.ghflusao.domain.Professor;
 import br.edu.ghflusao.dto.request.ProfessorRequestDTO;
 import br.edu.ghflusao.exception.BusinessException;
+import br.edu.ghflusao.repository.CursoRepository;
 import br.edu.ghflusao.repository.ProfessorRepository;
 import br.edu.ghflusao.repository.TurmaRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +22,7 @@ public class ProfessorService {
 
     private final ProfessorRepository professorRepository;
     private final TurmaRepository turmaRepository;
+    private final CursoRepository cursoRepository;
 
     public List<Professor> listar() {
         return professorRepository.findAll();
@@ -33,9 +36,10 @@ public class ProfessorService {
     @Transactional
     public Professor criar(ProfessorRequestDTO dto) {
         Professor professor = new Professor();
+        professor.setRegistro(gerarRegistro());
         aplicar(professor, dto);
         Professor criado = professorRepository.save(professor);
-        log.info("Professor criado: professorId={}", criado.getId());
+        log.info("Professor criado: professorId={}, registro={}", criado.getId(), criado.getRegistro());
         return criado;
     }
 
@@ -54,8 +58,8 @@ public class ProfessorService {
         if (!professorRepository.existsById(id)) {
             throw new BusinessException("Entidade não encontrada.");
         }
-        if (turmaRepository.existsByProfessorIdAndAtivoTrue(id)) {
-            throw new BusinessException("Não é permitido excluir professor com turmas ativas.");
+        if (turmaRepository.existsByProfessorId(id) || cursoRepository.existsByCoordenadorId(id)) {
+            throw new BusinessException("Não é permitido excluir professor com turmas ou coordenacoes vinculadas, inclusive registros historicos.");
         }
         professorRepository.deleteById(id);
         log.info("Professor excluído: professorId={}", id);
@@ -68,8 +72,17 @@ public class ProfessorService {
         professor.setTelefone(dto.telefone());
         professor.setEndereco(dto.endereco());
         professor.setDtNascimento(dto.dtNascimento());
-        professor.setRegistro(dto.registro());
         professor.setTitulacao(dto.titulacao());
         professor.setRegimeTrabalho(dto.regimeTrabalho());
+    }
+
+    private String gerarRegistro() {
+        for (int tentativa = 0; tentativa < 50; tentativa++) {
+            String registro = "PROF" + ThreadLocalRandom.current().nextInt(100000, 1000000);
+            if (!professorRepository.existsByRegistro(registro)) {
+                return registro;
+            }
+        }
+        throw new BusinessException("Nao foi possivel gerar o registro do professor. Tente novamente.");
     }
 }

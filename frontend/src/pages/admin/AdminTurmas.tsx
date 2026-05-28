@@ -33,7 +33,6 @@ import { AlocarProfessorModal } from '../../components/admin/AlocarProfessorModa
 import type { Turma } from '../../types'
 
 const schema = z.object({
-  codigo: z.string().min(1, 'Informe o código'),
   horario: z.string().optional(),
   vagas: z.coerce.number().int().min(0, 'Vagas >= 0'),
   semestre: z.string().min(1, 'Informe o semestre'),
@@ -159,7 +158,6 @@ export function AdminTurmas() {
   const openCreate = () => {
     setEditing(null)
     form.reset({
-      codigo: '',
       horario: '',
       vagas: 30,
       semestre: '2026.1',
@@ -180,7 +178,6 @@ export function AdminTurmas() {
         ? turnoRaw
         : 'NOITE'
     form.reset({
-      codigo: t.codigo,
       horario: t.horario ?? '',
       vagas: t.vagas,
       semestre: t.semestre,
@@ -202,7 +199,6 @@ export function AdminTurmas() {
     mutationFn: (values: FormData) => {
       const disciplinaId = Number(values.disciplinaId)
       const payload: TurmaUpdatePayload = {
-        codigo: values.codigo,
         horario: values.horario || undefined,
         vagas: Number(values.vagas),
         semestre: values.semestre,
@@ -465,10 +461,9 @@ export function AdminTurmas() {
               <label className="block text-sm font-medium text-text mb-1">
                 Código
               </label>
-              <Input
-                {...form.register('codigo')}
-                error={form.formState.errors.codigo?.message}
-              />
+              <div className="flex h-10 items-center rounded-lg border border-surface-border bg-surface px-3 text-sm text-text-muted">
+                {editing?.codigo ?? 'Gerado automaticamente'}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-text mb-1">

@@ -3,10 +3,10 @@ spring:
     name: ghflusao
 
   datasource:
-    url: ${ORACLE_JDBC_URL}
-    username: ${ORACLE_USER}
-    password: ${ORACLE_APP_PASSWORD:${ORACLE_PASSWORD}}
-    driver-class-name: oracle.jdbc.OracleDriver
+    url: ${POSTGRES_JDBC_URL:jdbc:postgresql://localhost:5432/ghflusao}
+    username: ${POSTGRES_USER:ghflusao}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: ${DB_POOL_MAX:5}
       minimum-idle: ${DB_POOL_MIN_IDLE:1}
@@ -21,16 +21,16 @@ spring:
     show-sql: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.OracleDialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-        default_schema: ${ORACLE_SCHEMA:GHFLUSAO}
+        default_schema: ${POSTGRES_SCHEMA:public}
 
   flyway:
     enabled: true
-    locations: classpath:db
-    baseline-on-migrate: true
-    schemas: ${ORACLE_SCHEMA:GHFLUSAO}
-    ignore-migration-patterns: "versioned:missing"
+    locations: classpath:db/postgres
+    baseline-on-migrate: false
+    schemas: ${POSTGRES_SCHEMA:public}
+    ignore-migration-patterns: []
 
 server:
   port: ${PORT:8080}
@@ -50,13 +50,16 @@ jwt:
 cors:
   allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
 
+app:
+  bootstrap-demo-admins: ${BOOTSTRAP_DEMO_ADMINS:false}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
-    enabled: ${SWAGGER_ENABLED:true}
+    enabled: ${SWAGGER_ENABLED:false}
   api-docs:
     path: /api-docs
-    enabled: ${SWAGGER_ENABLED:true}
+    enabled: ${SWAGGER_ENABLED:false}
 
 management:
   endpoints:
@@ -86,3 +89,11 @@ springdoc:
     enabled: ${SWAGGER_ENABLED:false}
   api-docs:
     enabled: ${SWAGGER_ENABLED:false}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: postgres-demo
+  flyway:
+    locations: classpath:db/postgres,classpath:db/postgres-demo

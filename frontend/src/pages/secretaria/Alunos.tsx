@@ -21,7 +21,6 @@ import type { Turno } from '../../types'
 const initialForm: AlunoPayload = {
   nome: '',
   cpf: '',
-  matriculaId: 0,
   turno: 'NOITE' as Turno,
   cursoId: 0,
   email: ''

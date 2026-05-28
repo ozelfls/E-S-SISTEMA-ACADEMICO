@@ -5,3 +5,8 @@ target
 *.log
 .git
 .gitignore
+.idea
+.vscode
+*.iml
+hs_err_pid*
+replay_pid*

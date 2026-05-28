@@ -61,7 +61,7 @@ public class Turma {
     @Column(nullable = false, length = 15)
     private StatusTurma status = StatusTurma.OPEN;
 
-    @Column(nullable = false, columnDefinition = "NUMBER(1)")
+    @Column(nullable = false)
     @Convert(converter = BooleanToNumberConverter.class)
     private boolean ativo = true;
 

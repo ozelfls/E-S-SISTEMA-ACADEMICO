@@ -1,150 +1,138 @@
-# GHFlusão - Sistema Acadêmico
+# GHFlusao - Sistema Academico
 
-Este repositório contém o sistema acadêmico GHFlusão com backend em Spring Boot + Oracle e frontend em React + TypeScript.
-===============================
-## 1) Como rodar o programa
+Sistema academico com backend Spring Boot, banco PostgreSQL e frontend React/TypeScript.
 
-### Pré-requisitos
+O caminho operacional atual e PostgreSQL. As configuracoes e migrations legadas de Oracle foram removidas da aplicacao.
 
-- Docker Desktop (para Oracle local)
+## Como Rodar Localmente
+
+### Pre-requisitos
+
+- Docker Desktop
 - Node.js 20+
 - Java 21
-- Maven 3.9+ (ou executar Maven via container)
+- Maven 3.9+
 
-### Banco Oracle local
-
-Suba o container Oracle (exemplo já usado no projeto):
+### Banco PostgreSQL
 
 ```bash
-docker run -d --name ghflusao-oracle -p 1521:1521 gvenzl/oracle-free:23-slim-faststart
+docker run -d --name ghflusao-postgres \
+  -e POSTGRES_USER=ghflusao \
+  -e POSTGRES_PASSWORD=ghflusao123 \
+  -e POSTGRES_DB=ghflusao \
+  -p 5432:5432 \
+  postgres:16-alpine
 ```
 
-As credenciais locais padrão do projeto estão em `backend/.env.local`.
+No ambiente local desta maquina, o container de laboratorio pode estar com o nome `ghflusao_oracle`, mas ele roda PostgreSQL 16.
 
 ### Backend
 
-No diretório `backend`:
+No diretorio `backend`, use PostgreSQL com seed de laboratorio:
 
 ```bash
+set SPRING_PROFILES_ACTIVE=dev,postgres-demo
+set POSTGRES_JDBC_URL=jdbc:postgresql://localhost:5432/ghflusao
+set POSTGRES_USER=ghflusao
+set POSTGRES_PASSWORD=ghflusao123
+set POSTGRES_SCHEMA=public
+set JWT_SECRET=0123456789012345678901234567890123456789012345678901234567890123
+set CORS_ORIGINS=http://localhost:5173
+set SWAGGER_ENABLED=true
+set BOOTSTRAP_DEMO_ADMINS=true
+set PORT=8081
 mvn spring-boot:run
 ```
 
-API sobe em:
+API:
 
-- `http://localhost:8080/api`
-- Swagger: `http://localhost:8080/api/swagger-ui.html`
+- `http://localhost:8081/api`
+- Swagger: `http://localhost:8081/api/swagger-ui/index.html`
 
 ### Frontend
 
-No diretório `frontend`:
+No diretorio `frontend`:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Aplicação web:
+Aplicacao:
 
 - `http://localhost:5173`
 
-### Dockerfiles
+O arquivo `frontend/.env.local` aponta para `http://localhost:8081/api`.
 
-O projeto possui Dockerfile para os três serviços principais:
+## Docker
 
-- `database/Dockerfile` -> Oracle Free local com usuário `GHFLUSAO`
-- `backend/Dockerfile` -> Spring Boot Java 21 com build Maven multi-stage
-- `frontend/Dockerfile` -> React/Vite compilado e servido por Nginx
+Servicos principais:
 
-Build das imagens:
+- `database/Dockerfile`: PostgreSQL 16 Alpine.
+- `backend/Dockerfile`: Spring Boot Java 21 com build Maven multi-stage.
+- `frontend/Dockerfile`: React/Vite compilado e servido por Nginx.
+
+Build manual:
 
 ```bash
 docker build -t ghflusao-database ./database
 docker build -t ghflusao-backend ./backend
-docker build --build-arg VITE_API_URL=http://localhost:8080/api -t ghflusao-frontend ./frontend
+docker build --build-arg VITE_API_URL=/api -t ghflusao-frontend ./frontend
 ```
 
-Execução manual em rede Docker:
+Deploy com Compose:
 
 ```bash
-docker network create ghflusao-net
-
-docker run -d --name ghflusao-oracle --network ghflusao-net -p 1521:1521 \
-  -e ORACLE_PASSWORD=oracle \
-  -e APP_USER=GHFLUSAO \
-  -e APP_USER_PASSWORD=ghflusao123 \
-  ghflusao-database
-
-docker run -d --name ghflusao-backend --network ghflusao-net -p 8080:8080 \
-  -e ORACLE_JDBC_URL=jdbc:oracle:thin:@//ghflusao-oracle:1521/FREEPDB1 \
-  -e ORACLE_USER=GHFLUSAO \
-  -e ORACLE_PASSWORD=ghflusao123 \
-  -e ORACLE_SCHEMA=GHFLUSAO \
-  -e JWT_SECRET=ZGV2bG9jYWxzZWNyZXRibGFua3NwYWNlMzJjaGFyc21pbmFhYWFhYWFhYWFhYWFhYWFhYWE= \
-  -e JWT_EXPIRATION=86400000 \
-  -e CORS_ORIGINS=http://localhost:5173 \
-  -e SWAGGER_ENABLED=true \
-  ghflusao-backend
-
-docker run -d --name ghflusao-frontend -p 5173:80 ghflusao-frontend
+cp .env.deploy.example .env.deploy
+docker compose -f docker-compose.prod.yml --env-file .env.deploy up -d --build
 ```
 
-### Build de validação
+## Backend
 
-```bash
-# backend
-mvn verify
-
-# frontend
-npm run build
-```
-
----
-
-## 2) Onde estão as classes Java
-
-As classes Java ficam em:
+Classes Java:
 
 - `backend/src/main/java/br/edu/ghflusao`
 
-Estrutura principal:
+Estrutura:
 
-- `domain/` -> entidades JPA (`Pessoa`, `Aluno`, `Professor`, `Curso`, `Disciplina`, `Turma`, `MatriculaEmTurma`, `Prova`, `ResultadoProva`, `UsuarioSistema`)
-- `enums/` -> enums de domínio (`Turno`, `Modalidade`, `Situacao`, `Perfil`, `StatusTurma`)
-- `repository/` -> repositórios Spring Data JPA
-- `service/` -> regras de negócio
-- `controller/` -> endpoints REST
-- `security/` -> JWT/filter/user details
-- `config/` -> configuração de segurança, CORS, OpenAPI
-- `exception/` -> tratamento global de erros
-- `dto/` -> contratos de entrada/saída
+- `domain/`: entidades JPA.
+- `enums/`: enums de dominio.
+- `repository/`: Spring Data JPA.
+- `service/`: regras de negocio.
+- `controller/`: endpoints REST.
+- `security/`: JWT e autenticacao.
+- `config/`: seguranca, CORS e OpenAPI.
+- `exception/`: tratamento global de erros.
+- `dto/`: contratos de entrada/saida.
 
-Migrations SQL:
+Migrations:
 
-- `backend/src/main/resources/db`
+- PostgreSQL atual: `backend/src/main/resources/db/postgres`
+- Seed local/demo PostgreSQL: `backend/src/main/resources/db/postgres-demo`
 
----
+## Stack
 
-## 3) Specs do sistema (stack e tecnologias)
-
-### Backend
+Backend:
 
 - Java 21
 - Spring Boot 3.3.4
 - Spring Web, Validation, Security, Data JPA
 - JWT (`jjwt 0.12.5`)
-- Flyway 10.15 (com `flyway-database-oracle`)
-- Oracle JDBC `ojdbc11` + UCP
-- Hibernate 6 com `OracleDialect`
-- OpenAPI/Swagger (`springdoc`)
+- Flyway 10.15
+- PostgreSQL JDBC
+- Flyway PostgreSQL
+- Hibernate PostgreSQLDialect
+- OpenAPI/Swagger
 - Actuator
 
-### Banco de dados
+Banco:
 
-- Oracle Database (Oracle Free / Oracle Cloud ATP)
+- PostgreSQL 16
 
-### Frontend
+Frontend:
 
-- React 18 + TypeScript 5
+- React 18
+- TypeScript 5
 - Vite 5
 - React Router DOM 6
 - TanStack React Query 5
@@ -153,32 +141,36 @@ Migrations SQL:
 - Zustand
 - TailwindCSS + PostCSS
 
----
+## Validacao
 
-## Verificação do diagrama UML enviado (classes e cardinalidades)
+Backend:
 
-Foi feita a checagem entre o diagrama e o código atual (`domain/` + migrations SQL):
+```bash
+mvn test
+```
 
-### Relacionamentos alinhados ao diagrama
+Frontend:
 
-- `Pessoa` <- herança de `Aluno` e `Professor`
-- `Professor (1)` -> `Turma (*)` (leciona)
-- `Curso (1)` -> `Disciplina (*)`
-- `Disciplina (1)` -> `Turma (*)`
-- `Aluno (*)` <-> `Turma (*)` via `MatriculaEmTurma`
-- `Turma (1)` -> `Prova (*)`
-- `Prova (1)` -> `ResultadoProva (*)`
-- `MatriculaEmTurma (1)` -> `ResultadoProva (*)`
-- `Disciplina` -> `Disciplina` (pré-requisito)
-- `Professor (1)` -> `Curso (0..1 por curso)` como coordenador
+```bash
+npm run build
+```
 
-### Equivalências de modelagem adotadas
+Endpoints basicos:
 
-- O diagrama mostra uma classe separada `Matricula`; no código atual a matrícula institucional do aluno está em `Aluno.matriculaId` e a matrícula em turma está em `MatriculaEmTurma`.
-- O diagrama usa tipos textuais para datas (`String`), enquanto o código usa `LocalDate`/`DATE`, que é tecnicamente mais adequado.
+- `GET /api/actuator/health`
+- `POST /api/auth/login`
+- `GET /api/dashboard/admin-resumo`
+- `GET /api/consultas/relatorio-academico`
 
-### Observação importante
+## Modelo de Dominio
 
-No diagrama, `Curso` possui `codigo`; no modelo atual de produção, `Curso` não possui esse campo persistido (somente `id`, `nome`, `chTotal`, `prevTerminoAnos`, `limiteConclusao`, `coordenador`).  
-Para alinhar 100% também nesse ponto, o próximo passo é incluir `codigo` em `Curso` (entidade + migration SQL).
-
+- `Pessoa` e base para `Aluno` e `Professor`.
+- `Curso` possui varias `Disciplina`.
+- `Disciplina` possui varias `Turma`.
+- `Professor` ministra `Turma`.
+- `Aluno` se relaciona com `Turma` via `MatriculaEmTurma`.
+- `Turma` possui `Prova`.
+- `Prova` possui `ResultadoProva`.
+- `ResultadoProva` se liga a `MatriculaEmTurma`.
+- `Disciplina` pode ter pre-requisito.
+- `Professor` pode coordenar `Curso`.

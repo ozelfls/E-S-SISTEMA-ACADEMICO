@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -67,8 +68,8 @@ public class CursoService {
         if (!cursoRepository.existsById(id)) {
             throw new BusinessException("Entidade não encontrada.");
         }
-        if (disciplinaRepository.existsByCursoIdAndAtivoTrue(id) || alunoRepository.existsByCursoId(id)) {
-            throw new BusinessException("Não é permitido excluir curso com alunos ou disciplinas vinculadas.");
+        if (disciplinaRepository.existsByCursoId(id) || alunoRepository.existsByCursoId(id)) {
+            throw new BusinessException("Não é permitido excluir curso com alunos ou disciplinas vinculadas, inclusive registros historicos.");
         }
         cursoRepository.deleteById(id);
         log.info("Curso excluído: cursoId={}", id);
@@ -78,7 +79,7 @@ public class CursoService {
         Curso curso = cursoRepository.findById(cursoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Curso não encontrado: " + cursoId));
         Disciplina disciplina = new Disciplina();
-        disciplina.setCodigo(dto.codigo());
+        disciplina.setCodigo(gerarCodigoDisciplina());
         disciplina.setNome(dto.nome());
         disciplina.setCreditos(dto.creditos());
         disciplina.setCh(dto.ch());
@@ -105,5 +106,14 @@ public class CursoService {
         Curso atualizado = cursoRepository.save(curso);
         log.info("Coordenador definido: cursoId={}, professorId={}", cursoId, professorId);
         return atualizado;
+    }
+    private String gerarCodigoDisciplina() {
+        for (int tentativa = 0; tentativa < 50; tentativa++) {
+            String codigo = "D" + ThreadLocalRandom.current().nextInt(100000, 1000000);
+            if (!disciplinaRepository.existsByCodigo(codigo)) {
+                return codigo;
+            }
+        }
+        throw new BusinessException("Nao foi possivel gerar o codigo da disciplina. Tente novamente.");
     }
 }

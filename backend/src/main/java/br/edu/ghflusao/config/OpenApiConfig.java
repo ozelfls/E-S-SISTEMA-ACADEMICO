@@ -13,7 +13,7 @@ public class OpenApiConfig {
     public OpenAPI ghflusaoOpenApi() {
         return new OpenAPI().info(new Info()
                 .title("GHFlusao API")
-                .description("API acadêmica com Spring Boot + Oracle")
+                .description("API academica com Spring Boot + PostgreSQL")
                 .version("1.0.0")
                 .contact(new Contact().name("Equipe GHFlusao")));
     }

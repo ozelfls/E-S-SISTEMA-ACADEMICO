@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -35,7 +36,7 @@ public class TurmaService {
         Disciplina disciplina = disciplinaRepository.findByIdAndAtivoTrue(disciplinaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Disciplina não encontrada: " + disciplinaId));
         Turma turma = new Turma();
-        turma.setCodigo(dto.codigo());
+        turma.setCodigo(gerarCodigo());
         turma.setHorario(dto.horario());
         turma.setVagas(dto.vagas());
         turma.setCargaHoraria(disciplina.getCh());
@@ -56,7 +57,7 @@ public class TurmaService {
         validarConflitoProfessor(turma);
         Turma criada = turmaRepository.save(turma);
         log.info("Turma criada: turmaId={}, disciplinaId={}, status={}", criada.getId(), disciplinaId, criada.getStatus());
-        return criada;
+        return recarregar(criada.getId());
     }
 
     @Transactional(readOnly = true)
@@ -84,7 +85,6 @@ public class TurmaService {
     public Turma atualizar(Long id, TurmaRequestDTO dto) {
         Turma turma = turmaRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new BusinessException("Entidade não encontrada."));
-        turma.setCodigo(dto.codigo());
         turma.setHorario(dto.horario());
         turma.setVagas(dto.vagas());
         turma.setSemestre(dto.semestre());
@@ -110,7 +110,7 @@ public class TurmaService {
         validarConflitoProfessor(turma);
         Turma atualizada = turmaRepository.save(turma);
         log.info("Turma atualizada: turmaId={}, status={}", atualizada.getId(), atualizada.getStatus());
-        return atualizada;
+        return recarregar(atualizada.getId());
     }
 
     public Turma alocarProfessor(Long turmaId, Long professorId) {
@@ -126,7 +126,7 @@ public class TurmaService {
         validarConflitoProfessor(turma);
         Turma atualizada = turmaRepository.save(turma);
         log.info("Professor alocado em turma: turmaId={}, professorId={}", turmaId, professorId);
-        return atualizada;
+        return recarregar(atualizada.getId());
     }
 
     public void excluir(Long id) {
@@ -160,5 +160,20 @@ public class TurmaService {
         if (conflito) {
             throw new BusinessException("Professor já possui turma no mesmo horário para o semestre informado.");
         }
+    }
+
+    private String gerarCodigo() {
+        for (int tentativa = 0; tentativa < 50; tentativa++) {
+            String codigo = "T" + ThreadLocalRandom.current().nextInt(100000, 1000000);
+            if (!turmaRepository.existsByCodigo(codigo)) {
+                return codigo;
+            }
+        }
+        throw new BusinessException("Nao foi possivel gerar o codigo da turma. Tente novamente.");
+    }
+
+    private Turma recarregar(Long id) {
+        return turmaRepository.findByIdAndAtivoTrue(id)
+                .orElseThrow(() -> new BusinessException("Entidade nÃ£o encontrada."));
     }
 }

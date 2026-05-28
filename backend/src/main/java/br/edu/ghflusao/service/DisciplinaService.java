@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -45,7 +46,7 @@ public class DisciplinaService {
         Curso curso = cursoRepository.findById(dto.cursoId())
                 .orElseThrow(() -> new BusinessException("Entidade não encontrada."));
         Disciplina disciplina = new Disciplina();
-        disciplina.setCodigo(dto.codigo());
+        disciplina.setCodigo(gerarCodigo());
         disciplina.setNome(dto.nome());
         disciplina.setCreditos(dto.creditos());
         disciplina.setCh(dto.ch());
@@ -67,7 +68,6 @@ public class DisciplinaService {
     public Disciplina atualizar(Long id, DisciplinaRequestDTO dto) {
         Disciplina disciplina = disciplinaRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new BusinessException("Entidade não encontrada."));
-        disciplina.setCodigo(dto.codigo());
         disciplina.setNome(dto.nome());
         disciplina.setCreditos(dto.creditos());
         disciplina.setCh(dto.ch());
@@ -100,5 +100,15 @@ public class DisciplinaService {
         disciplina.setAtivo(false);
         disciplinaRepository.save(disciplina);
         log.info("Disciplina desativada (soft delete): disciplinaId={}", id);
+    }
+
+    private String gerarCodigo() {
+        for (int tentativa = 0; tentativa < 50; tentativa++) {
+            String codigo = "D" + ThreadLocalRandom.current().nextInt(100000, 1000000);
+            if (!disciplinaRepository.existsByCodigo(codigo)) {
+                return codigo;
+            }
+        }
+        throw new BusinessException("Nao foi possivel gerar o codigo da disciplina. Tente novamente.");
     }
 }

@@ -5,6 +5,11 @@ const api = axios.create({
   timeout: 15000
 })
 
+function clearAuthSession() {
+  localStorage.removeItem('ghflusao_token')
+  localStorage.removeItem('ghflusao-auth')
+}
+
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('ghflusao_token')
   if (token) {
@@ -16,8 +21,8 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   response => response,
   error => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('ghflusao_token')
+    if ([401, 403].includes(error.response?.status)) {
+      clearAuthSession()
       window.location.href = '/login'
     }
     return Promise.reject(error)

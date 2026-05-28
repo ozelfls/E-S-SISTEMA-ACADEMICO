@@ -1,8 +1,8 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.7
 
-FROM gvenzl/oracle-free:23-slim-faststart
+FROM postgres:16-alpine
 
-EXPOSE 1521
+EXPOSE 5432
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=10 \
-  CMD healthcheck.sh || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=10 \
+  CMD pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB" || exit 1

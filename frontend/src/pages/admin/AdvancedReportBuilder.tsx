@@ -242,7 +242,7 @@ const VALUELESS_OPS = new Set<FilterOp>([
   'top10Lowest'
 ])
 
-const ORACLE_FILTER_PRESETS: Array<{
+const RELATIONAL_FILTER_PRESETS: Array<{
   label: string
   field: string
   op: FilterOp
@@ -901,10 +901,10 @@ export function AdvancedReportBuilder() {
       >
         <div className="mb-4">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
-            Top 10 filtros estilo Oracle
+            Top 10 filtros academicos
           </p>
           <div className="flex flex-wrap gap-2">
-            {ORACLE_FILTER_PRESETS.filter(preset =>
+            {RELATIONAL_FILTER_PRESETS.filter(preset =>
               availableFields.some(field => field.key === preset.field)
             ).map(preset => (
               <button

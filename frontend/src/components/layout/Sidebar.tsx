@@ -255,6 +255,19 @@ function SpotifySidebarPlayer() {
 
       {open && (
         <div className="mt-3 space-y-3">
+          <a
+            href={link}
+            target="_blank"
+            rel="noreferrer"
+            className="spotify-sidebar-action"
+          >
+            <span className="spotify-sidebar-action-icon" aria-hidden>
+              <svg viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </span>
+            Tocar no Spotify
+          </a>
           <iframe
             title="Spotify player"
             src={embedUrl}

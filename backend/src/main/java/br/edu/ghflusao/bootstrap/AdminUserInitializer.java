@@ -6,6 +6,7 @@ import br.edu.ghflusao.repository.UsuarioSistemaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -20,8 +21,15 @@ public class AdminUserInitializer implements CommandLineRunner {
     private final UsuarioSistemaRepository repository;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${app.bootstrap-demo-admins:false}")
+    private boolean bootstrapDemoAdmins;
+
     @Override
     public void run(String... args) {
+        if (!bootstrapDemoAdmins) {
+            log.info("Bootstrap de administradores demo desativado.");
+            return;
+        }
         for (String login : ADMIN_LOGINS) {
             if (repository.findByLogin(login).isPresent()) {
                 continue;

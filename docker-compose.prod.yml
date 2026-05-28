@@ -4,20 +4,23 @@ services:
       context: ./database
     image: ghflusao-database:prod
     container_name: ghflusao-database
+    init: true
     restart: unless-stopped
     environment:
-      ORACLE_PASSWORD: ${ORACLE_PASSWORD}
-      APP_USER: ${APP_USER}
-      APP_USER_PASSWORD: ${APP_USER_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_BIND:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - oracle-data:/opt/oracle/oradata
+      - postgres-data:/var/lib/postgresql/data
     networks:
       - ghflusao-net
     healthcheck:
-      test: ["CMD-SHELL", "healthcheck.sh || exit 1"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\" || exit 1"]
       interval: 30s
       timeout: 10s
-      start_period: 120s
+      start_period: 20s
       retries: 10
     logging:
       driver: json-file
@@ -31,16 +34,18 @@ services:
       context: ./backend
     image: ghflusao-backend:prod
     container_name: ghflusao-backend
+    init: true
     restart: unless-stopped
     environment:
-      ORACLE_JDBC_URL: ${ORACLE_JDBC_URL}
-      ORACLE_USER: ${ORACLE_USER}
-      ORACLE_APP_PASSWORD: ${APP_USER_PASSWORD}
-      ORACLE_SCHEMA: ${ORACLE_SCHEMA}
+      POSTGRES_JDBC_URL: jdbc:postgresql://database:5432/${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_SCHEMA: ${POSTGRES_SCHEMA:-public}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
       CORS_ORIGINS: ${CORS_ORIGINS}
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+      BOOTSTRAP_DEMO_ADMINS: ${BOOTSTRAP_DEMO_ADMINS:-false}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       DB_POOL_MAX: ${DB_POOL_MAX:-8}
       DB_POOL_MIN_IDLE: ${DB_POOL_MIN_IDLE:-1}
@@ -48,7 +53,7 @@ services:
       database:
         condition: service_healthy
     ports:
-      - "127.0.0.1:8080:8080"
+      - "${BACKEND_BIND:-127.0.0.1}:${BACKEND_PORT:-8080}:8080"
     networks:
       - ghflusao-net
     healthcheck:
@@ -71,6 +76,7 @@ services:
         VITE_API_URL: ${VITE_API_URL:-/api}
     image: ghflusao-frontend:prod
     container_name: ghflusao-frontend
+    init: true
     restart: unless-stopped
     depends_on:
       backend:
@@ -95,4 +101,4 @@ networks:
     driver: bridge
 
 volumes:
-  oracle-data:
+  postgres-data:

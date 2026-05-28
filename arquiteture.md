@@ -38,17 +38,17 @@ O desenvolvimento considerado neste documento cobre o periodo de marco de 2026 a
 
 ### Banco de dados
 
-- Oracle Database
-- Oracle JDBC / OJDBC11
-- Oracle UCP
-- Flyway para versionamento de schema e migrations
+- PostgreSQL 16 como banco operacional atual
+- PostgreSQL JDBC
+- Flyway PostgreSQL para versionamento de schema e migrations
+- PostgreSQL 16 como unico banco operacional
 
 ### Execucao e infraestrutura local
 
 - Docker para execucao dos servicos principais
-- Backend exposto em `http://localhost:8080/api`
+- Backend PostgreSQL local exposto em `http://localhost:8081/api`
 - Frontend exposto em `http://localhost:5173`
-- Banco Oracle exposto em `localhost:1521`
+- Banco PostgreSQL exposto em `localhost:5432`
 
 ## Arquitetura do projeto
 
@@ -86,7 +86,9 @@ Foram aplicadas estrategias como DTOs de resposta e `EntityGraph` em pontos sens
 
 ### Banco de dados
 
-O banco e Oracle, com schema versionado via Flyway. As migrations ficam em `backend/src/main/resources/db` e controlam criacao de tabelas, seeds, regras academicas, indices, ajustes em provas, cache de relatorio e auditoria de resultados.
+O banco operacional atual e PostgreSQL 16, com schema versionado via Flyway. As migrations PostgreSQL ficam em `backend/src/main/resources/db/postgres`. O seed local de demonstracao fica separado em `backend/src/main/resources/db/postgres-demo`, ativado apenas por profile de laboratorio. A trilha Oracle foi removida da aplicacao.
+
+Por padrao, o backend usa `PostgreSQLDialect`, driver `org.postgresql.Driver` e Flyway em `classpath:db/postgres`. Para laboratorio com 10 registros por entidade principal, usa-se tambem o profile `postgres-demo`.
 
 O modelo de dados gira em torno de entidades academicas como:
 
