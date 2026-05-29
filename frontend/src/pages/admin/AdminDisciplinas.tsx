@@ -28,6 +28,10 @@ import { Modal } from '../../components/ui/Modal'
 import { Pagination } from '../../components/ui/Pagination'
 import { Spinner } from '../../components/ui/Spinner'
 import { Badge } from '../../components/ui/Badge'
+import {
+  CadastroWorkflow,
+  type CadastroWorkflowStep
+} from '../../components/ui/CadastroWorkflow'
 import type { Disciplina } from '../../types'
 
 const schema = z.object({
@@ -102,6 +106,45 @@ export function AdminDisciplinas({
   )
 
   const form = useForm<FormData>({ resolver: zodResolver(schema) })
+  const formValues = form.watch()
+  const nomeOk = (formValues.nome?.trim().length ?? 0) >= 3
+  const cargaOk =
+    Number(formValues.creditos) >= 1 &&
+    Number(formValues.creditos) <= 20 &&
+    Number(formValues.ch) >= 15 &&
+    Boolean(formValues.modalidade)
+  const cursoOk = Boolean(cursoIdFixo ?? formValues.cursoId)
+  const cadastroReady = nomeOk && cargaOk && cursoOk
+  const cadastroSteps: CadastroWorkflowStep[] = [
+    {
+      chave: 'identificacao',
+      titulo: 'Identificacao',
+      detalhe: nomeOk ? 'Nome da disciplina definido.' : 'Informe o nome da disciplina.',
+      status: nomeOk ? 'OK' : 'PENDENTE'
+    },
+    {
+      chave: 'carga',
+      titulo: 'Carga',
+      detalhe: cargaOk
+        ? 'Creditos, CH e modalidade prontos.'
+        : 'Defina creditos, CH e modalidade.',
+      status: cargaOk ? 'OK' : 'PENDENTE'
+    },
+    {
+      chave: 'curso',
+      titulo: 'Curso',
+      detalhe: cursoOk ? 'Curso vinculado.' : 'Selecione o curso da disciplina.',
+      status: cursoOk ? 'OK' : 'PENDENTE'
+    },
+    {
+      chave: 'codigo',
+      titulo: 'Codigo',
+      detalhe: cadastroReady
+        ? 'Codigo sera gerado ao salvar.'
+        : 'O codigo automatico entra no final.',
+      status: cadastroReady ? 'OK' : 'PENDENTE'
+    }
+  ]
 
   const openCreate = () => {
     setEditing(null)
@@ -344,6 +387,17 @@ export function AdminDisciplinas({
         title={editing ? 'Editar disciplina' : 'Nova disciplina'}
       >
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          {!editing && (
+            <CadastroWorkflow
+              steps={cadastroSteps}
+              ready={cadastroReady}
+              summary={
+                cadastroReady
+                  ? 'Disciplina pronta para criar. O codigo sera gerado automaticamente.'
+                  : 'Complete as etapas para publicar uma disciplina consistente na grade.'
+              }
+            />
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-text mb-1">

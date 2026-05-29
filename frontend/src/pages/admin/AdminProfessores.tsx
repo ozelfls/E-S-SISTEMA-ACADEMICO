@@ -27,6 +27,10 @@ import { Input } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Pagination } from '../../components/ui/Pagination'
 import { Spinner } from '../../components/ui/Spinner'
+import {
+  CadastroWorkflow,
+  type CadastroWorkflowStep
+} from '../../components/ui/CadastroWorkflow'
 import type { Professor } from '../../types'
 
 const cpfRegex = /^\d{11}$/
@@ -46,6 +50,7 @@ type FormData = z.input<typeof schema>
 const SELECT_CLS =
   'w-full h-10 rounded-lg border border-surface-border bg-white px-3 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20'
 const PAGE_SIZE = 12
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function AdminProfessores() {
   const qc = useQueryClient()
@@ -99,6 +104,45 @@ export function AdminProfessores() {
   )
 
   const form = useForm<FormData>({ resolver: zodResolver(schema) })
+  const formValues = form.watch()
+  const nomeOk = (formValues.nome?.trim().length ?? 0) >= 3
+  const cpfOk = onlyDigits(formValues.cpf ?? '').length === 11
+  const emailOk = emailRegex.test(String(formValues.email ?? ''))
+  const perfilOk = nomeOk && cpfOk && emailOk
+  const cadastroReady = nomeOk && cpfOk && emailOk
+  const cadastroSteps: CadastroWorkflowStep[] = [
+    {
+      chave: 'identificacao',
+      titulo: 'Identificacao',
+      detalhe:
+        nomeOk && cpfOk
+          ? 'Nome e CPF prontos.'
+          : 'Informe nome e CPF com 11 digitos.',
+      status: nomeOk && cpfOk ? 'OK' : 'PENDENTE'
+    },
+    {
+      chave: 'contato',
+      titulo: 'Contato',
+      detalhe: emailOk ? 'E-mail validado.' : 'Informe um e-mail valido.',
+      status: emailOk ? 'OK' : formValues.email ? 'BLOQUEADO' : 'PENDENTE'
+    },
+    {
+      chave: 'perfil',
+      titulo: 'Perfil docente',
+      detalhe: perfilOk
+        ? 'Registro e dados opcionais prontos para salvar.'
+        : 'Titulacao, telefone e regime podem complementar o cadastro.',
+      status: perfilOk ? 'OK' : 'PENDENTE'
+    },
+    {
+      chave: 'registro',
+      titulo: 'Registro',
+      detalhe: cadastroReady
+        ? 'Registro sera gerado ao salvar.'
+        : 'O registro automatico entra no final.',
+      status: cadastroReady ? 'OK' : 'PENDENTE'
+    }
+  ]
 
   const openCreate = () => {
     setEditing(null)
@@ -319,6 +363,17 @@ export function AdminProfessores() {
         title={editing ? 'Editar professor' : 'Novo professor'}
       >
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          {!editing && (
+            <CadastroWorkflow
+              steps={cadastroSteps}
+              ready={cadastroReady}
+              summary={
+                cadastroReady
+                  ? 'Professor pronto para cadastrar. O registro sera criado automaticamente.'
+                  : 'Complete as etapas para cadastrar o professor sem depender de registro manual.'
+              }
+            />
+          )}
           <div>
             <label className="block text-sm font-medium text-text mb-1">
               Nome

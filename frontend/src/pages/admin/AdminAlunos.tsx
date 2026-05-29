@@ -28,6 +28,10 @@ import { Input } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Pagination } from '../../components/ui/Pagination'
 import { Spinner } from '../../components/ui/Spinner'
+import {
+  CadastroWorkflow,
+  type CadastroWorkflowStep
+} from '../../components/ui/CadastroWorkflow'
 import type { Aluno, Turno } from '../../types'
 
 const cpfRegex = /^\d{11}$/
@@ -52,6 +56,7 @@ const SELECT_CLS =
   'w-full h-10 rounded-lg border border-surface-border bg-white px-3 text-sm text-text focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20'
 const PAGE_SIZE = 12
 const formatMatricula = (value: number) => String(value).padStart(6, '0')
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function AdminAlunos() {
   const qc = useQueryClient()
@@ -99,6 +104,43 @@ export function AdminAlunos() {
   )
 
   const form = useForm<FormData>({ resolver: zodResolver(schema) })
+  const formValues = form.watch()
+  const nomeOk = (formValues.nome?.trim().length ?? 0) >= 3
+  const cpfOk = onlyDigits(formValues.cpf ?? '').length === 11
+  const emailOk = !formValues.email || emailRegex.test(String(formValues.email))
+  const vinculoOk = Boolean(formValues.cursoId) && Boolean(formValues.turno)
+  const cadastroReady = nomeOk && cpfOk && emailOk && vinculoOk
+  const cadastroSteps: CadastroWorkflowStep[] = [
+    {
+      chave: 'dados-pessoais',
+      titulo: 'Dados pessoais',
+      detalhe:
+        nomeOk && cpfOk
+          ? 'Nome e CPF prontos.'
+          : 'Informe nome e CPF com 11 digitos.',
+      status: nomeOk && cpfOk ? 'OK' : 'PENDENTE'
+    },
+    {
+      chave: 'contato',
+      titulo: 'Contato',
+      detalhe: emailOk ? 'E-mail validado ou opcional.' : 'Revise o e-mail informado.',
+      status: emailOk ? 'OK' : 'BLOQUEADO'
+    },
+    {
+      chave: 'vinculo',
+      titulo: 'Vinculo academico',
+      detalhe: vinculoOk ? 'Curso e turno selecionados.' : 'Selecione curso e turno.',
+      status: vinculoOk ? 'OK' : 'PENDENTE'
+    },
+    {
+      chave: 'matricula',
+      titulo: 'Matricula',
+      detalhe: cadastroReady
+        ? 'Matricula sera gerada ao salvar.'
+        : 'A geracao automatica entra no final.',
+      status: cadastroReady ? 'OK' : 'PENDENTE'
+    }
+  ]
 
   const openCreate = () => {
     setEditing(null)
@@ -313,6 +355,17 @@ export function AdminAlunos() {
         title={editing ? 'Editar aluno' : 'Cadastrar aluno'}
       >
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          {!editing && (
+            <CadastroWorkflow
+              steps={cadastroSteps}
+              ready={cadastroReady}
+              summary={
+                cadastroReady
+                  ? 'Cadastro pronto para confirmar. A matricula sera criada automaticamente.'
+                  : 'Complete as etapas para liberar um cadastro de aluno consistente.'
+              }
+            />
+          )}
           <div>
             <label className="block text-sm font-medium text-text mb-1">
               Nome
