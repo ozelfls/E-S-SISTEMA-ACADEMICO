@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useUiStore } from '../../store/uiStore'
@@ -27,6 +27,39 @@ type IconKey =
   | 'cursos'
   | 'professores'
   | 'explorar'
+
+interface SpotifyEmbedController {
+  loadUri: (spotifyUri: string) => void
+  play: () => void
+  togglePlay: () => void
+  addListener: (
+    event: 'ready' | 'playback_started' | 'playback_update',
+    callback: (event: { data?: { isPaused?: boolean } }) => void
+  ) => void
+  destroy: () => void
+}
+
+interface SpotifyIframeApi {
+  createController: (
+    element: HTMLElement,
+    options: {
+      uri: string
+      width?: string | number
+      height?: string | number
+      theme?: 'dark'
+    },
+    callback: (controller: SpotifyEmbedController) => void
+  ) => void
+}
+
+declare global {
+  interface Window {
+    onSpotifyIframeApiReady?: (api: SpotifyIframeApi) => void
+    SpotifyIframeApi?: SpotifyIframeApi
+  }
+}
+
+let spotifyIframeApiPromise: Promise<SpotifyIframeApi> | null = null
 
 const MENU_BY_PERFIL: Record<Perfil, MenuItem[]> = {
   ALUNO: [
@@ -71,24 +104,52 @@ function storedValue(key: string, fallback: string) {
   }
 }
 
-function spotifyEmbedUrl(value: string) {
+function storeValue(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value)
+  } catch {
+    // Storage can be unavailable in private or locked-down browser modes.
+  }
+}
+
+function loadSpotifyIframeApi() {
+  if (window.SpotifyIframeApi) return Promise.resolve(window.SpotifyIframeApi)
+  if (spotifyIframeApiPromise) return spotifyIframeApiPromise
+
+  spotifyIframeApiPromise = new Promise(resolve => {
+    window.onSpotifyIframeApiReady = api => {
+      window.SpotifyIframeApi = api
+      resolve(api)
+    }
+
+    if (!document.querySelector('script[data-spotify-iframe-api]')) {
+      const script = document.createElement('script')
+      script.src = 'https://open.spotify.com/embed/iframe-api/v1'
+      script.async = true
+      script.dataset.spotifyIframeApi = 'true'
+      document.body.appendChild(script)
+    }
+  })
+
+  return spotifyIframeApiPromise
+}
+
+function spotifyUriFromLink(value: string) {
   const raw = value.trim() || DEFAULT_SPOTIFY_LINK
   const uriMatch = raw.match(/^spotify:(album|artist|episode|playlist|show|track):([^?]+)$/i)
-  if (uriMatch) {
-    return `https://open.spotify.com/embed/${uriMatch[1].toLowerCase()}/${uriMatch[2]}?utm_source=generator&theme=0`
-  }
+  if (uriMatch) return raw
 
   try {
     const url = new URL(raw)
-    if (!url.hostname.includes('spotify.com')) return spotifyEmbedUrl(DEFAULT_SPOTIFY_LINK)
+    if (!url.hostname.includes('spotify.com')) return spotifyUriFromLink(DEFAULT_SPOTIFY_LINK)
     const parts = url.pathname.split('/').filter(Boolean)
     const embedIndex = parts[0] === 'embed' ? 1 : 0
     const type = parts[embedIndex]
     const id = parts[embedIndex + 1]
-    if (!type || !id) return spotifyEmbedUrl(DEFAULT_SPOTIFY_LINK)
-    return `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0`
+    if (!type || !id) return spotifyUriFromLink(DEFAULT_SPOTIFY_LINK)
+    return `spotify:${type}:${id}`
   } catch {
-    return spotifyEmbedUrl(DEFAULT_SPOTIFY_LINK)
+    return spotifyUriFromLink(DEFAULT_SPOTIFY_LINK)
   }
 }
 
@@ -179,6 +240,51 @@ function MenuIcon({ icon }: { icon: IconKey }) {
   }
 }
 
+interface SpotifyMeta {
+  title: string
+  author: string
+  thumbnailUrl?: string
+}
+
+const spotifyFallbackMeta: SpotifyMeta = {
+  title: 'Daily Mix',
+  author: 'Spotify'
+}
+
+function ControlIcon({ type }: { type: 'previous' | 'play' | 'pause' | 'next' | 'volume' }) {
+  if (type === 'play') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden>
+        <path d="M8 5v14l11-7z" />
+      </svg>
+    )
+  }
+
+  if (type === 'pause') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden>
+        <path d="M7 5h4v14H7zM13 5h4v14h-4z" />
+      </svg>
+    )
+  }
+
+  if (type === 'volume') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden>
+        <path d="M4 9v6h4l5 4V5L8 9H4z" />
+        <path d="M16 9.5c1 1.4 1 3.6 0 5" />
+      </svg>
+    )
+  }
+
+  const next = type === 'next'
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden>
+      <path d={next ? 'M5 5v14l9-7-9-7zM16 5h3v14h-3z' : 'M19 5v14l-9-7 9-7zM5 5h3v14H5z'} />
+    </svg>
+  )
+}
+
 function SpotifySidebarPlayer() {
   const [open, setOpen] = useState(
     () => storedValue(SPOTIFY_OPEN_STORAGE, 'false') === 'true'
@@ -188,19 +294,125 @@ function SpotifySidebarPlayer() {
     storedValue(SPOTIFY_LINK_STORAGE, DEFAULT_SPOTIFY_LINK)
   )
   const [draft, setDraft] = useState(link)
-  const embedUrl = useMemo(() => spotifyEmbedUrl(link), [link])
+  const [meta, setMeta] = useState<SpotifyMeta>(spotifyFallbackMeta)
+  const [playing, setPlaying] = useState(false)
+  const [volumeOpen, setVolumeOpen] = useState(false)
+  const [volume, setVolume] = useState(68)
+  const [playerReady, setPlayerReady] = useState(false)
+  const embedHostRef = useRef<HTMLDivElement | null>(null)
+  const controllerRef = useRef<SpotifyEmbedController | null>(null)
+  const pendingPlayRef = useRef(false)
+  const spotifyUri = spotifyUriFromLink(link)
+
+  useEffect(() => {
+    let active = true
+    const controller = new AbortController()
+    const target = link.trim() || DEFAULT_SPOTIFY_LINK
+
+    setMeta(spotifyFallbackMeta)
+    fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(target)}`, {
+      signal: controller.signal
+    })
+      .then(response => (response.ok ? response.json() : Promise.reject()))
+      .then((data: { title?: string; author_name?: string; thumbnail_url?: string }) => {
+        if (!active) return
+        setMeta({
+          title: data.title ?? spotifyFallbackMeta.title,
+          author: data.author_name ?? spotifyFallbackMeta.author,
+          thumbnailUrl: data.thumbnail_url
+        })
+      })
+      .catch(() => {
+        if (active) setMeta(spotifyFallbackMeta)
+      })
+
+    return () => {
+      active = false
+      controller.abort()
+    }
+  }, [link])
 
   const toggleOpen = () => {
     const next = !open
     setOpen(next)
-    localStorage.setItem(SPOTIFY_OPEN_STORAGE, String(next))
+    storeValue(SPOTIFY_OPEN_STORAGE, String(next))
   }
 
   const applyLink = () => {
     const next = draft.trim() || DEFAULT_SPOTIFY_LINK
     setLink(next)
     setDraft(next)
-    localStorage.setItem(SPOTIFY_LINK_STORAGE, next)
+    storeValue(SPOTIFY_LINK_STORAGE, next)
+  }
+
+  useEffect(() => {
+    if (!open || !embedHostRef.current || controllerRef.current) return
+    let cancelled = false
+
+    loadSpotifyIframeApi().then(api => {
+      if (cancelled || !embedHostRef.current) return
+      api.createController(
+        embedHostRef.current,
+        {
+          uri: spotifyUri,
+          width: '100%',
+          height: 82,
+          theme: 'dark'
+        },
+        controller => {
+          if (cancelled) {
+            controller.destroy()
+            return
+          }
+          controllerRef.current = controller
+          controller.addListener('ready', () => {
+            setPlayerReady(true)
+            if (pendingPlayRef.current) {
+              pendingPlayRef.current = false
+              controller.play()
+            }
+          })
+          controller.addListener('playback_started', () => {
+            setPlaying(true)
+          })
+          controller.addListener('playback_update', event => {
+            if (typeof event.data?.isPaused === 'boolean') {
+              setPlaying(!event.data.isPaused)
+            }
+          })
+        }
+      )
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [open, spotifyUri])
+
+  useEffect(() => {
+    if (!controllerRef.current) return
+    setPlaying(false)
+    controllerRef.current.loadUri(spotifyUri)
+  }, [spotifyUri])
+
+  const toggleSpotifyPlayback = () => {
+    if (!controllerRef.current) {
+      pendingPlayRef.current = true
+      setPlayerReady(false)
+      return
+    }
+    controllerRef.current.togglePlay()
+    setPlaying(current => !current)
+  }
+
+  const restartSpotifyPlayback = () => {
+    if (!controllerRef.current) {
+      pendingPlayRef.current = true
+      return
+    }
+    controllerRef.current.loadUri(spotifyUri)
+    controllerRef.current.play()
+    setPlaying(true)
   }
 
   return (
@@ -224,7 +436,7 @@ function SpotifySidebarPlayer() {
               Spotify
             </span>
             <span className="block truncate text-xs text-text-muted">
-              player integrado
+              foco rapido
             </span>
           </span>
         </button>
@@ -232,63 +444,102 @@ function SpotifySidebarPlayer() {
           type="button"
           onClick={toggleOpen}
           aria-label={open ? 'Recolher Spotify' : 'Abrir Spotify'}
-          className="grid h-7 w-7 place-items-center rounded-full border border-surface-border bg-white text-xs font-bold text-text-muted hover:border-primary hover:text-primary"
+          className="spotify-sidebar-toggle"
         >
-          {open ? 'x' : '>'}
+          <svg viewBox="0 0 20 20" aria-hidden>
+            <path d={open ? 'M5 12.5 10 7.5l5 5' : 'M5 7.5l5 5 5-5'} />
+          </svg>
         </button>
       </div>
 
       {!open && (
-        <div className="mt-3 flex items-center justify-between gap-2">
-          <span className="truncate text-xs font-medium text-text-muted">
-            Playlist pronta para tocar
-          </span>
-          <button
-            type="button"
-            onClick={toggleOpen}
-            className="spotify-sidebar-play"
-          >
-            Abrir
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={toggleOpen}
+          className="spotify-sidebar-collapsed"
+        >
+          <span className="truncate">Playlist pronta</span>
+          <span>Abrir</span>
+        </button>
       )}
 
       {open && (
-        <div className="mt-3 space-y-3">
-          <a
-            href={link}
-            target="_blank"
-            rel="noreferrer"
-            className="spotify-sidebar-action"
-          >
-            <span className="spotify-sidebar-action-icon" aria-hidden>
-              <svg viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
+        <div className="spotify-sidebar-expanded">
+          <div className="spotify-mini-cover">
+            {meta.thumbnailUrl ? (
+              <img src={meta.thumbnailUrl} alt="" />
+            ) : (
+              <div className="spotify-mini-cover-fallback">
+                <span className="spotify-sidebar-logo" aria-hidden>
+                  <svg viewBox="0 0 24 24" className="spotify-sidebar-mark">
+                    <circle cx="12" cy="12" r="12" />
+                    <path d="M17.52 17.34c-0.24 0.36-0.66 0.48-1.02 0.24-2.82-1.74-6.36-2.1-10.56-1.14-0.42 0.12-0.78-0.18-0.9-0.54-0.12-0.42 0.18-0.78 0.54-0.9 4.56-1.02 8.52-0.6 11.64 1.32 0.42 0.18 0.48 0.66 0.3 1.02z" />
+                    <path d="M18.96 14.04c-0.3 0.42-0.84 0.6-1.26 0.3-3.24-1.98-8.16-2.58-11.94-1.38-0.48 0.12-1.02-0.12-1.14-0.6-0.12-0.48 0.12-1.02 0.6-1.14 4.38-1.32 9.78-0.66 13.5 1.62 0.36 0.18 0.54 0.78 0.24 1.2z" />
+                    <path d="M19.08 10.68c-3.84-2.28-10.26-2.52-13.92-1.38-0.6 0.18-1.2-0.18-1.38-0.72-0.18-0.6 0.18-1.2 0.72-1.38 4.26-1.26 11.28-1.02 15.72 1.62 0.54 0.3 0.72 1.02 0.42 1.56-0.3 0.42-1.02 0.6-1.56 0.3z" />
+                  </svg>
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="spotify-mini-meta">
+            <p>{meta.title}</p>
+            <span>
+              {playerReady ? (playing ? 'Tocando pelo Spotify' : 'Pronto para tocar') : 'Carregando player'}
             </span>
-            Tocar no Spotify
-          </a>
-          <iframe
-            title="Spotify player"
-            src={embedUrl}
-            className="spotify-sidebar-frame"
-            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-            loading="lazy"
-          />
-          <div className="flex items-center justify-between gap-2">
-            <span className="truncate text-[11px] font-semibold uppercase tracking-wide text-text-muted">
-              Link ativo
-            </span>
+          </div>
+
+          <div className="spotify-mini-controls">
+            <button type="button" aria-label="Reiniciar" onClick={restartSpotifyPlayback}>
+              <ControlIcon type="previous" />
+            </button>
             <button
               type="button"
-              onClick={() => setEditing(current => !current)}
-              className="text-xs font-bold text-primary hover:text-primary-dark"
+              aria-label={playing ? 'Pausar' : 'Play'}
+              onClick={toggleSpotifyPlayback}
+              className={playing ? 'spotify-mini-play spotify-mini-play-active' : 'spotify-mini-play'}
             >
-              {editing ? 'fechar' : 'trocar'}
+              <ControlIcon type={playing ? 'pause' : 'play'} />
+            </button>
+            <button type="button" aria-label="Reiniciar" onClick={restartSpotifyPlayback}>
+              <ControlIcon type="next" />
+            </button>
+            <button
+              type="button"
+              aria-label="Volume"
+              onClick={() => setVolumeOpen(current => !current)}
+              className={volumeOpen ? 'spotify-mini-volume-active' : ''}
+            >
+              <ControlIcon type="volume" />
+            </button>
+          </div>
+
+          {volumeOpen && (
+            <div className="spotify-volume-drawer">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={volume}
+                onChange={e => setVolume(Number(e.target.value))}
+                aria-label="Volume"
+              />
+              <span>{volume}%</span>
+            </div>
+          )}
+
+          <div className="spotify-embed-host" ref={embedHostRef} />
+
+          <div className="spotify-sidebar-row">
+            <a href={link} target="_blank" rel="noreferrer" className="spotify-sidebar-open-link">
+              Spotify
+            </a>
+            <button type="button" onClick={() => setEditing(current => !current)}>
+              {editing ? 'Fechar' : 'Trocar'}
             </button>
           </div>
           {editing && (
-            <div className="grid grid-cols-[1fr_auto] gap-2">
+            <div className="spotify-sidebar-edit">
               <input
                 value={draft}
                 onChange={e => setDraft(e.target.value)}
@@ -298,7 +549,7 @@ function SpotifySidebarPlayer() {
                     setEditing(false)
                   }
                 }}
-                className="h-8 min-w-0 rounded-lg border border-surface-border bg-white px-2 text-xs text-text placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="min-w-0"
                 placeholder="Cole um link do Spotify"
               />
               <button
@@ -307,7 +558,6 @@ function SpotifySidebarPlayer() {
                   applyLink()
                   setEditing(false)
                 }}
-                className="h-8 rounded-lg bg-primary px-2 text-xs font-bold text-white hover:bg-primary-dark"
               >
                 OK
               </button>
