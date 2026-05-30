@@ -1,6 +1,26 @@
 # Deploy GHFlusao
 
 Este guia cobre o deploy em uma VM Linux usando PostgreSQL 16, backend Spring Boot e frontend Nginx.
+Para Render, use o Blueprint `render.yaml` na raiz do repositorio.
+
+## Render
+
+O Blueprint cria:
+
+- `es-sistema-academico-backend`: Web Service Docker usando `backend/Dockerfile`.
+- `es-sistema-academico-frontend`: Static Site usando `frontend`, `npm ci && npm run build` e publish em `dist`.
+- `es-sistema-academico-db`: Render Postgres 16 no plano free.
+
+No Render, o frontend nao usa `frontend/Dockerfile` nem `frontend/nginx.conf`; ele e servido como Static Site e aponta diretamente para `https://es-sistema-academico-backend.onrender.com/api` via `VITE_API_URL`.
+
+O Render fornece `DATABASE_URL` no formato `postgresql://...`. O backend converte essa URL para `jdbc:postgresql://...` no boot quando `POSTGRES_JDBC_URL` nao estiver definido, mantendo o Docker Compose local funcionando como antes.
+
+O Blueprint tambem habilita um administrador inicial para teste em producao:
+
+- login: `blankspace`
+- senha: `1234`
+
+Esse usuario e criado ou atualizado como `ADMIN` durante o boot quando `INITIAL_ADMIN_ENABLED=true`.
 
 ## Arquivos
 

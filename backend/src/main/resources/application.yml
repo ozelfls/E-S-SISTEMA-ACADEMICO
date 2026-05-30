@@ -52,6 +52,10 @@ cors:
 
 app:
   bootstrap-demo-admins: ${BOOTSTRAP_DEMO_ADMINS:false}
+  initial-admin:
+    enabled: ${INITIAL_ADMIN_ENABLED:false}
+    login: ${INITIAL_ADMIN_LOGIN:}
+    password: ${INITIAL_ADMIN_PASSWORD:}
 
 springdoc:
   swagger-ui:
